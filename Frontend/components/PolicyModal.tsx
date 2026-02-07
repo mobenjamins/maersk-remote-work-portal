@@ -28,6 +28,10 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({ isOpen, onClose }) => 
 
         {/* Content */}
         <div className="px-8 py-6 text-sm text-gray-700 leading-relaxed space-y-8">
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-sm p-4 text-xs">
+            This policy takes effect on <strong>1 March 2026</strong>. If you are submitting a request before that date,
+            please confirm which policy applies to your trip.
+          </div>
 
           {/* Section 1 */}
           <section>

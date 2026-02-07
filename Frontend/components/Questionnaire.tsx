@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, createRequest } from '../services/api';
+import { User, createRequest, checkDateOverlap } from '../services/api';
 import { RequestFormData } from '../types';
 import { extractApprovalData } from '../services/geminiService';
 import { CountryAutocomplete } from './CountryAutocomplete';
@@ -18,6 +18,15 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
   const [resultMessage, setResultMessage] = useState('');
   const [referenceNumber, setReferenceNumber] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isCheckingOverlap, setIsCheckingOverlap] = useState(false);
+  const [overlapWarning, setOverlapWarning] = useState('');
+  const [uploadError, setUploadError] = useState('');
+  const [validationErrors, setValidationErrors] = useState<{
+    managerEmail?: string;
+    destinationCountry?: string;
+    startDate?: string;
+    endDate?: string;
+  }>({});
 
   const [formData, setFormData] = useState<RequestFormData>({
     firstName: user?.first_name || '',
@@ -52,11 +61,37 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     }
   }, [formData, onDataChange]);
 
-  // Calculate max end date (20 days from start)
+  const isWorkday = (date: Date) => date.getDay() !== 0 && date.getDay() !== 6;
+
+  const countWorkdays = (startDate: string, endDate: string) => {
+    if (!startDate || !endDate) return 0;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (end < start) return 0;
+
+    let count = 0;
+    const current = new Date(start);
+    while (current <= end) {
+      if (isWorkday(current)) count++;
+      current.setDate(current.getDate() + 1);
+    }
+    return count;
+  };
+
+  // Calculate max end date (20 workdays from start)
   const getMaxEndDate = () => {
     if (!formData.startDate) return undefined;
     const date = new Date(formData.startDate);
-    date.setDate(date.getDate() + 20);
+    let workdays = 0;
+    while (workdays < 20) {
+      if (isWorkday(date)) {
+        workdays += 1;
+      }
+      if (workdays === 20) {
+        break;
+      }
+      date.setDate(date.getDate() + 1);
+    }
     return date.toISOString().split('T')[0];
   };
 
@@ -65,8 +100,13 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     return `${day}/${month}/${year}`;
   };
 
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (['managerEmail', 'destinationCountry', 'startDate', 'endDate'].includes(field)) {
+      setValidationErrors(prev => ({ ...prev, [field]: undefined }));
+    }
   };
 
   const resetProfile = () => {
@@ -84,6 +124,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setIsAnalyzing(true);
+      setUploadError('');
 
       try {
         const data = await extractApprovalData(file);
@@ -92,8 +133,12 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
           managerName: data.managerName,
           managerEmail: data.managerEmail,
         }));
+        if (!data.managerName && !data.managerEmail) {
+          setUploadError('We could not read the approval email. Please enter the manager details below.');
+        }
       } catch (error) {
         console.error("Extraction failed", error);
+        setUploadError('We could not read the approval email. Please enter the manager details below.');
       } finally {
         setIsAnalyzing(false);
       }
@@ -102,10 +147,35 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
 
   const validateAndNext = () => {
     if (step === 1) {
-      if (!formData.managerEmail) return;
+      const errors: typeof validationErrors = {};
+      if (!formData.managerEmail) {
+        errors.managerEmail = 'Please upload the approval email or enter your manager email to continue.';
+      } else if (!isValidEmail(formData.managerEmail)) {
+        errors.managerEmail = 'That email does not look valid. Please check it.';
+      }
+      setValidationErrors(errors);
+      if (Object.keys(errors).length > 0) return;
       setStep(2);
     } else if (step === 2) {
-      if (!formData.destinationCountry || !formData.startDate || !formData.endDate) return;
+      const errors: typeof validationErrors = {};
+      if (!formData.destinationCountry) {
+        errors.destinationCountry = 'Please select a destination country.';
+      }
+      if (!formData.startDate) {
+        errors.startDate = 'Please select a start date.';
+      }
+      if (!formData.endDate) {
+        errors.endDate = 'Please select an end date.';
+      }
+      if (formData.startDate && formData.endDate) {
+        const start = new Date(formData.startDate);
+        const end = new Date(formData.endDate);
+        if (end < start) {
+          errors.endDate = 'End date must be after the start date.';
+        }
+      }
+      setValidationErrors(errors);
+      if (Object.keys(errors).length > 0) return;
       setStep(3);
     }
   };
@@ -154,6 +224,51 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
   };
 
   const maxDate = getMaxEndDate();
+  const workdaysSelected = countWorkdays(formData.startDate, formData.endDate);
+  const showDurationWarning = workdaysSelected > 14 && workdaysSelected <= 20;
+  const managerEmailHasValue = formData.managerEmail.trim().length > 0;
+  const managerEmailLooksValid = managerEmailHasValue && isValidEmail(formData.managerEmail);
+  const dateOrderError = formData.startDate && formData.endDate && new Date(formData.endDate) < new Date(formData.startDate)
+    ? 'End date must be after the start date.'
+    : '';
+  const datesLookGood = formData.startDate && formData.endDate && !dateOrderError;
+  const destinationLooksGood = formData.destinationCountry.trim().length > 0;
+
+  useEffect(() => {
+    let isActive = true;
+    if (!formData.startDate || !formData.endDate) {
+      setOverlapWarning('');
+      return;
+    }
+
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+    if (end < start) {
+      setOverlapWarning('');
+      return;
+    }
+
+    setIsCheckingOverlap(true);
+    checkDateOverlap(formData.startDate, formData.endDate)
+      .then((response) => {
+        if (!isActive) return;
+        if (response.has_overlap) {
+          setOverlapWarning(response.warning || 'These dates overlap with an existing request.');
+        } else {
+          setOverlapWarning('');
+        }
+      })
+      .catch(() => {
+        if (isActive) setOverlapWarning('');
+      })
+      .finally(() => {
+        if (isActive) setIsCheckingOverlap(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [formData.startDate, formData.endDate]);
 
   // Result screen
   if (result !== 'idle') {
@@ -267,6 +382,12 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                     {isAnalyzing && <span className="text-sm text-[#42b0d5] animate-pulse">AI extracting details...</span>}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Upload the email from your Line Manager confirming initial approval (Section 4.1.4).</p>
+                  {uploadError && (
+                    <p className="text-xs text-amber-600 mt-2">{uploadError}</p>
+                  )}
+                  {validationErrors.managerEmail && (
+                    <p className="text-xs text-red-600 mt-2">{validationErrors.managerEmail}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 bg-gray-50 p-6 rounded-sm border border-gray-200">
@@ -287,6 +408,15 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       placeholder="manager@maersk.com"
                       className="w-full bg-white border border-gray-300 rounded-sm p-3 focus:border-[#42b0d5] outline-none text-gray-800 placeholder-gray-400"
                     />
+                    {managerEmailHasValue && !managerEmailLooksValid && (
+                      <p className="text-xs text-red-600 mt-2">That email does not look right.</p>
+                    )}
+                    {managerEmailLooksValid && (
+                      <p className="text-xs text-emerald-600 mt-2">Email looks good.</p>
+                    )}
+                    {validationErrors.managerEmail && (
+                      <p className="text-xs text-red-600 mt-2">{validationErrors.managerEmail}</p>
+                    )}
                   </div>
                   <p className="col-span-2 text-xs text-gray-500">Auto-filled from upload, or enter manually.</p>
                 </div>
@@ -306,6 +436,12 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                     placeholder="Search for a country..."
                   />
                   <p className="text-xs text-gray-500 mt-1">SIRW cannot be performed in sanctioned countries or those with no Maersk entity (Appendix A).</p>
+                  {destinationLooksGood && !validationErrors.destinationCountry && (
+                    <p className="text-xs text-emerald-600 mt-2">Destination selected.</p>
+                  )}
+                  {validationErrors.destinationCountry && (
+                    <p className="text-xs text-red-600 mt-2">{validationErrors.destinationCountry}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
@@ -318,11 +454,21 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       value={formData.startDate}
                     />
                     <p className="text-xs text-gray-500 mt-1">The first working day you plan to work remotely from abroad.</p>
+                    {formData.startDate && !validationErrors.startDate && (
+                      <p className="text-xs text-emerald-600 mt-2">Start date looks good.</p>
+                    )}
+                    {validationErrors.startDate && (
+                      <p className="text-xs text-red-600 mt-2">{validationErrors.startDate}</p>
+                    )}
                   </div>
                   <div>
                     <div className="flex justify-between">
                       <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">End Date</label>
-                      {maxDate && <span className="text-xs text-[#42b0d5] font-medium">Policy limit: {formatDateForDisplay(maxDate)}</span>}
+                      {maxDate && (
+                        <span className="text-xs text-[#42b0d5] font-medium">
+                          Max end date (20 workdays): {formatDateForDisplay(maxDate)}
+                        </span>
+                      )}
                     </div>
                     <input
                       type="date"
@@ -334,6 +480,32 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       value={formData.endDate}
                     />
                     <p className="text-xs text-gray-500 mt-1">Policy limit: maximum 20 workdays per calendar year (Section 4.1.2).</p>
+                    {workdaysSelected > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">Workdays selected: {workdaysSelected}</p>
+                    )}
+                    {dateOrderError && (
+                      <p className="text-xs text-red-600 mt-1">{dateOrderError}</p>
+                    )}
+                    {datesLookGood && !validationErrors.endDate && (
+                      <p className="text-xs text-emerald-600 mt-1">Dates look good.</p>
+                    )}
+                    {showDurationWarning && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        Heads up: trips longer than 14 workdays may need extra review, even if they are under 20.
+                      </p>
+                    )}
+                    {workdaysSelected > 20 && (
+                      <p className="text-xs text-red-600 mt-1">This exceeds the 20-workday limit.</p>
+                    )}
+                    {isCheckingOverlap && (
+                      <p className="text-xs text-gray-500 mt-1">Checking for overlapping requests...</p>
+                    )}
+                    {overlapWarning && !isCheckingOverlap && (
+                      <p className="text-xs text-amber-600 mt-1">{overlapWarning}</p>
+                    )}
+                    {validationErrors.endDate && (
+                      <p className="text-xs text-red-600 mt-2">{validationErrors.endDate}</p>
+                    )}
                   </div>
                 </div>
               </div>

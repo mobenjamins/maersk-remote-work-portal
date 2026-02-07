@@ -1,5 +1,14 @@
 import { GoogleGenAI, Chat } from "@google/genai";
 
+const getGeminiApiKey = (): string | null => {
+  const env = (import.meta as any).env || {};
+  const viteKey = env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY;
+  const processKey = typeof process !== 'undefined'
+    ? (process as any).env?.API_KEY || (process as any).env?.GEMINI_API_KEY
+    : null;
+  return viteKey || processKey || null;
+};
+
 const SYSTEM_INSTRUCTION = `
 You are the Maersk International Remote Work Compliance Assistant.
 `;
@@ -96,7 +105,12 @@ Latin America: Belize, Guyana, Suriname
 let chatInstance: Chat | null = null;
 
 export const initializeChat = () => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error("Gemini API key not configured");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
 
   chatInstance = ai.chats.create({
     model: 'gemini-2.0-flash',
@@ -109,7 +123,13 @@ export const initializeChat = () => {
 };
 
 export const sendMessageToGemini = async (message: string): Promise<string> => {
-  if (!chatInstance) initializeChat();
+  if (!chatInstance) {
+    try {
+      initializeChat();
+    } catch (error) {
+      return "Policy assistant is unavailable because API access is not configured.";
+    }
+  }
   if (!chatInstance) throw new Error("Failed to initialize chat");
 
   try {
@@ -125,7 +145,12 @@ export const sendMessageToGemini = async (message: string): Promise<string> => {
  * Handles Policy Q&A requests from the Policy Assistant chatbot.
  */
 export const askPolicyQuestion = async (question: string, currentContext: string, formData: any): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    return "Policy assistant is unavailable because API access is not configured.";
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
 
   const userDataString = JSON.stringify(formData, null, 2);
 
@@ -222,7 +247,13 @@ export const extractApprovalData = async (file: File): Promise<{ managerName: st
   // For PDF and MSG files — send to Gemini as inline data (multimodal)
   if (fileName.endsWith('.pdf') || fileName.endsWith('.msg')) {
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const apiKey = getGeminiApiKey();
+      if (!apiKey) {
+        console.warn('Gemini API key not configured for file extraction');
+        return { managerName: '', managerEmail: '' };
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
       const base64Data = await fileToBase64(file);
       const mimeType = getMimeType(fileName);
 

@@ -16,7 +16,10 @@ interface Message {
 export const PolicyChatbot: React.FC<PolicyChatbotProps> = ({ isOpen, onClose, formData }) => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', text: "Hi! I'm your Policy Assistant. Ask me anything about Maersk's remote work policy." }
+    {
+      role: 'assistant',
+      text: "Hi! I'm your Policy Assistant. Ask me anything about Maersk's remote work policy. Note: this policy takes effect on 1 March 2026."
+    }
   ]);
   const [isThinking, setIsThinking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);

@@ -14,6 +14,7 @@ const App: React.FC = () => {
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [currentFormData, setCurrentFormData] = useState<RequestFormData | undefined>(undefined);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
 
   useEffect(() => {
     const savedUser = initAuth();
@@ -21,6 +22,19 @@ const App: React.FC = () => {
       setUser(savedUser);
       setViewState(ViewState.DASHBOARD);
     }
+  }, []);
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setUser(null);
+      setIsChatbotOpen(false);
+      setIsPolicyModalOpen(false);
+      setViewState(ViewState.LOGIN);
+      setIsSessionExpired(true);
+    };
+
+    window.addEventListener('auth:expired', handleAuthExpired);
+    return () => window.removeEventListener('auth:expired', handleAuthExpired);
   }, []);
 
   const handleLogin = (loggedInUser: User) => {
@@ -158,6 +172,30 @@ const App: React.FC = () => {
     <>
       {renderContent()}
       <PolicyModal isOpen={isPolicyModalOpen} onClose={() => setIsPolicyModalOpen(false)} />
+      {isSessionExpired && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-md rounded-sm shadow-2xl border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900">Session Expired</h2>
+            </div>
+            <div className="px-6 py-5 text-sm text-gray-600">
+              Your session has expired. Please sign in again to continue.
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => {
+                  setUser(null);
+                  setViewState(ViewState.LOGIN);
+                  setIsSessionExpired(false);
+                }}
+                className="bg-[#42b0d5] hover:bg-[#3aa3c7] text-white font-semibold py-2 px-4 rounded-sm transition-colors"
+              >
+                Sign in
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
