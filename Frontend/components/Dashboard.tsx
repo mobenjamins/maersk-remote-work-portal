@@ -72,7 +72,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
       {/* Premium Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
         <div>
-            <h1 className="text-4xl font-light text-gray-900 tracking-tight">SIRW <span className="font-semibold text-maersk-blue">Portal</span></h1>
+            <h1 className="text-4xl font-light text-gray-900 tracking-tight">International Remote Work <span className="font-semibold text-maersk-blue">Portal</span></h1>
             <p className="text-gray-500 mt-2 font-light text-lg">
               Welcome back, {user?.first_name || 'User'}. Manage your global mobility requests.
             </p>
@@ -113,7 +113,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
                         <div className="inline-flex items-center gap-2 px-3 py-1 bg-maersk-blue/20 text-maersk-blue rounded-full text-[10px] font-bold uppercase tracking-widest border border-maersk-blue/30">
                            <Plus size={12} /> New Application
                         </div>
-                        <h2 className="text-2xl font-light text-white">Start <span className="font-bold">SIRW</span> Request</h2>
+                        <h2 className="text-2xl font-light text-white">Start <span className="font-bold">Remote Work</span> Request</h2>
                         <p className="text-gray-300 text-sm leading-relaxed max-w-md font-light">
                             Ready to work from abroad? Submit your Short-Term International Remote Work request for compliance review.
                         </p>

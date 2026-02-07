@@ -32,10 +32,14 @@ export const CountryAutocomplete: React.FC<CountryAutocompleteProps> = ({
   const blockReason = value ? getBlockReason(value) : null;
   const blockMessage = value ? getBlockMessage(value) : null;
 
-  // Filter countries based on query
+  // Filter countries based on query, excluding blocked countries when showing warnings
+  const baseCountries = showBlockedWarning
+    ? countries.filter((country) => !isCountryBlocked(country.name))
+    : countries;
+
   const filteredCountries = query === ''
-    ? countries
-    : countries.filter((country) =>
+    ? baseCountries
+    : baseCountries.filter((country) =>
         country.name.toLowerCase().includes(query.toLowerCase()) ||
         country.code.toLowerCase().includes(query.toLowerCase())
       );

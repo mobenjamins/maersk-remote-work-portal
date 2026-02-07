@@ -56,7 +56,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <div className="text-white text-6xl mb-6 opacity-90">★</div>
                 <h1 className="text-white text-4xl font-light tracking-wide mb-4">Short-Term International Remote Work Portal</h1>
                 <p className="text-blue-200 text-lg font-light max-w-md mx-auto">
-                    Submit, track and manage SIRW requests under the Global SIRW Policy.
+                    Submit, track and manage international remote work requests under the Global SIRW Policy.
                 </p>
             </div>
         </div>
