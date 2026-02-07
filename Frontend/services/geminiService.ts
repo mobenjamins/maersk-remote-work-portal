@@ -1,80 +1,122 @@
-import { GoogleGenAI, Chat, GenerativeModel } from "@google/genai";
+import { GoogleGenAI, Chat } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = `
-You are the Maersk International Remote Work Compliance Assistant. Your goal is to gather specific information from an employee to determine if their remote work request can be auto-approved or must be rejected based on tax and immigration risks.
+You are the Maersk International Remote Work Compliance Assistant.
+`;
 
-**Tone:** Professional, efficient, corporate, and helpful.
-
-**Process:**
-1.  **Manager Approval:** The user must first have uploaded an email from their line manager. (Assume the system has validated the file upload if the conversation starts).
-2.  **Gather Information:** You must ask the following questions one by one (do not ask all at once):
-    *   Which Maersk entity are you employed by?
-    *   What is your home country (where you are currently employed)?
-    *   Which country do you want to work remotely in?
-    *   What are the exact dates of travel? (Calculate duration. If > 20 days, flag it).
-    *   Do you have the legal right to work in the destination country (e.g., citizenship, visa)?
-    *   Are you in a sales role, or do you have the authority to negotiate/sign contracts on Maersk's behalf?
-
-**Decision Logic:**
-*   **REJECT IMMEDIATELY** if:
-    *   They do *not* have the right to work in the destination.
-    *   They are in a sales role/can sign contracts (creates Permanent Establishment risk).
-    *   The duration is > 20 days (Policy limit).
-    *   Explanation: "Based on Maersk's global tax and immigration policy, this request creates a compliance risk and cannot be auto-approved."
-
-*   **APPROVE** if:
-    *   They have right to work.
-    *   They are NOT sales/signatory.
-    *   Duration is <= 20 days.
-    *   Confirmation: "Your request matches our safe harbor criteria. An automated email has been sent confirming your approval."
-
-*   **ESCALATE** if:
-    *   The user asks complex questions about tax treaties or specific edge cases not covered above.
-    *   Say: "This requires review by the Global Mobility Tax Team (The Cozm). I have escalated your request."
-
-*   **Policy Queries:** If they ask about the policy, summarize: "Maersk allows up to 20 days of international remote work per calendar year, provided there are no immigration or corporate tax risks."
+const POLICY_CONTEXT = `
+MAERSK GLOBAL REMOTE WORK POLICY (v2.1):
+1. Duration: Maximum 20 working days per calendar year.
+2. Eligibility: Must have valid citizenship or work visa for the destination.
+3. Restrictions: Sales, Signatory, and Executive roles are restricted due to Permanent Establishment (PE) risk.
+4. Approval: Line Manager approval required via email (.msg or .pdf) before initiating.
+5. Process: Users must upload manager approval, confirm details, and pass compliance checks.
 `;
 
 let chatInstance: Chat | null = null;
-let modelInstance: GenerativeModel | null = null;
 
 export const initializeChat = () => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
-  // Using gemini-3-flash-preview for responsiveness
+
   chatInstance = ai.chats.create({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-2.5-flash-preview',
     config: {
       systemInstruction: SYSTEM_INSTRUCTION,
-      temperature: 0.2, // Low temperature for consistent compliance rules
     },
   });
-  
+
   return chatInstance;
 };
 
-export const extractApprovalData = async (fileName: string): Promise<{ managerName: string; managerEmail: string }> => {
-  // Stub: in production, this would use Gemini to extract data from the uploaded document
-  return {
-    managerName: 'Line Manager',
-    managerEmail: 'manager@maersk.com',
-  };
-};
-
 export const sendMessageToGemini = async (message: string): Promise<string> => {
-  if (!chatInstance) {
-    initializeChat();
-  }
-
-  if (!chatInstance) {
-    throw new Error("Failed to initialize chat");
-  }
+  if (!chatInstance) initializeChat();
+  if (!chatInstance) throw new Error("Failed to initialize chat");
 
   try {
     const response = await chatInstance.sendMessage({ message });
-    return response.text || "I apologize, I'm having trouble processing that request right now.";
+    return response.text || "Error processing.";
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return "System Error: Unable to contact compliance engine. Please try again later.";
+    return "System Error.";
+  }
+};
+
+/**
+ * Handles Policy Q&A requests from the Policy Assistant chatbot.
+ */
+export const askPolicyQuestion = async (question: string, currentContext: string, formData: any): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  const userDataString = JSON.stringify(formData, null, 2);
+
+  const systemPrompt = `
+    You are a helpful HR Policy Assistant for Maersk.
+    The user is currently on the "${currentContext}" page of the Remote Work Portal.
+
+    CURRENT USER DATA (What they have typed so far):
+    ${userDataString}
+
+    POLICY SOURCE OF TRUTH:
+    ${POLICY_CONTEXT}
+
+    INSTRUCTIONS:
+    1. Answer the user's question based strictly on the Policy text.
+    2. PERSONALISE your answer using the CURRENT USER DATA.
+       - Example: If they ask "Can I go there?", check their 'destinationCountry' in the data. If they selected 'India', mention India specifically.
+       - Example: If they ask "Is my duration okay?", check their 'startDate' and 'endDate' to calculate days.
+    3. STRICTLY INFORMATIONAL ONLY: You are a read-only assistant.
+       - Do NOT offer to perform actions (e.g., "I can reset the form", "I can email your manager").
+       - If asked to perform an action, politely explain you are here to provide policy guidance only.
+    4. Keep answers concise (under 60 words).
+    5. Be friendly and professional.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-preview',
+      contents: question,
+      config: {
+        systemInstruction: systemPrompt,
+      }
+    });
+
+    return response.text || "I couldn't find an answer to that in the policy.";
+  } catch (e) {
+    console.error("Policy Chat Error", e);
+    return "I'm having trouble connecting right now. The key points are: max 20 days/year, you need valid work rights, and manager approval is required via email upload.";
+  }
+};
+
+/**
+ * Extracts manager data from an uploaded approval file using Gemini.
+ * In production, this would parse actual PDF/EML bytes.
+ * Here, we send a prompt to Gemini to simulate extraction based on filename.
+ */
+export const extractApprovalData = async (fileName: string): Promise<{ managerName: string; managerEmail: string }> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  const prompt = `
+    I have an approval email file named "${fileName}".
+    Act as a data extractor.
+    Generate a JSON response with a realistic "managerName" (Scandinavian name) and "managerEmail" (@maersk.com) that might be found in this approval file.
+    Return ONLY JSON.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    const text = response.text;
+    if (!text) return { managerName: '', managerEmail: '' };
+    return JSON.parse(text);
+  } catch (e) {
+    console.error("Extraction failed", e);
+    // Fallback if API fails
+    return { managerName: 'Lars Sorensen', managerEmail: 'lars.sorensen@maersk.com' };
   }
 };

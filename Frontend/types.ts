@@ -1,10 +1,21 @@
 export enum ViewState {
   LOGIN = 'LOGIN',
   DASHBOARD = 'DASHBOARD',
-  SELECTION = 'SELECTION',
-  CHAT = 'CHAT',
   FORM = 'FORM',
   SUCCESS = 'SUCCESS'
+}
+
+export interface RequestFormData {
+  firstName: string;
+  lastName: string;
+  homeCountry: string;
+  managerName: string;
+  managerEmail: string;
+  destinationCountry: string;
+  startDate: string;
+  endDate: string;
+  rightToWork: boolean;
+  noRestrictedRoles: boolean;
 }
 
 export interface ChatMessage {

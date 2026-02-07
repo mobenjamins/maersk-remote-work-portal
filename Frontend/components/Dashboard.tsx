@@ -104,7 +104,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user }) => {
             {/* New Request Action Card */}
             <motion.div 
                 whileHover={{ y: -4 }}
-                onClick={() => setViewState(ViewState.SELECTION)}
+                onClick={() => setViewState(ViewState.FORM)}
                 className="bg-maersk-dark text-white group cursor-pointer rounded-sm shadow-xl relative overflow-hidden p-1"
             >
                 <div className="bg-maersk-dark p-8 flex items-center justify-between relative z-10">
@@ -152,7 +152,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user }) => {
                         <p className="text-sm text-gray-500 max-w-xs mx-auto">Create your first remote work request to see your application history and status here.</p>
                     </div>
                     <button 
-                        onClick={() => setViewState(ViewState.SELECTION)}
+                        onClick={() => setViewState(ViewState.FORM)}
                         className="text-maersk-blue font-bold text-xs uppercase tracking-widest hover:underline"
                     >
                         + Submit Your First Case
