@@ -30,12 +30,17 @@ DATABASES = {
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
-SECURE_SSL_REDIRECT = True
+SECURE_SSL_REDIRECT = False  # Railway handles SSL at the proxy level
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
-# Static files - configure for your hosting (S3, etc.)
-# STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+# Whitenoise for static files
+MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Logging
 LOGGING = {
