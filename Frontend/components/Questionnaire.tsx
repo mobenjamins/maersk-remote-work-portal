@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, createRequest, checkDateOverlap } from '../services/api';
+import { User, submitSIRWRequest, checkDateOverlap } from '../services/api';
 import { RequestFormData } from '../types';
 import { extractApprovalData } from '../services/geminiService';
 import { CountryAutocomplete } from './CountryAutocomplete';
@@ -184,36 +184,35 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     setLoading(true);
 
     try {
-      const request = await createRequest({
-        maersk_entity: user?.maersk_entity || 'Maersk A/S',
-        home_country: formData.homeCountry,
+      // Split manager name into first/last
+      const nameParts = (formData.managerName || '').trim().split(/\s+/);
+      const managerFirstName = nameParts[0] || '';
+      const managerLastName = nameParts.length > 1 ? nameParts.slice(-1)[0] : '';
+      const managerMiddleName = nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : undefined;
+
+      const response = await submitSIRWRequest({
         destination_country: formData.destinationCountry,
         start_date: formData.startDate,
         end_date: formData.endDate,
         has_right_to_work: formData.rightToWork,
-        is_sales_role: !formData.noRestrictedRoles,
+        confirmed_role_eligible: formData.noRestrictedRoles,
+        manager_first_name: managerFirstName,
+        manager_last_name: managerLastName,
+        manager_middle_name: managerMiddleName,
+        manager_email: formData.managerEmail,
       });
 
-      setReferenceNumber(request.reference_number);
+      setReferenceNumber(response.reference_number);
 
-      if (request.status === 'approved') {
+      if (response.outcome === 'approved') {
         setResult('approved');
-        setResultMessage("Your SIRW request meets the safe harbour criteria under the Global SIRW Policy (Section 4.1). A confirmation has been sent to you and your Line Manager. Your employment terms and contract remain unchanged (Section 4.1.3). Please note: it is your responsibility to track your workdays against the 20-day annual limit.");
-      } else if (request.status === 'escalated') {
+        setResultMessage(response.message);
+      } else if (response.outcome === 'pending') {
         setResult('escalated');
-        setResultMessage("Your request has been referred to Global Mobility for review with specialist vendor input (Section 5 — Extended SIRW). You and your Line Manager will be contacted within 2 business days.");
+        setResultMessage(response.message);
       } else {
         setResult('rejected');
-        const reason = (request as any).decision_reason || '';
-        if (reason.toLowerCase().includes('right to work') || reason.toLowerCase().includes('immigration')) {
-          setResultMessage("Section 4.1.3 — Immigration: You must have the legal right to work in the destination country. The right to work is not the same as the right to visit. Contact Global Mobility Partners for clarification.");
-        } else if (reason.toLowerCase().includes('sales') || reason.toLowerCase().includes('role') || reason.toLowerCase().includes('permanent establishment')) {
-          setResultMessage("Section 4.1.1 — Eligibility: Your role category falls under restricted activities that may create a Permanent Establishment risk, including commercial, sales, procurement, and senior executive roles.");
-        } else if (reason.toLowerCase().includes('duration') || reason.toLowerCase().includes('days') || reason.toLowerCase().includes('exceed')) {
-          setResultMessage("Section 4.1.2 — Duration: SIRW is limited to a strict maximum of 20 workdays per calendar year. For exceptional circumstances, see Section 5.");
-        } else {
-          setResultMessage(reason || "One or more compliance criteria were not met. Please review the SIRW Policy sections 4.1.1–4.1.3 for details.");
-        }
+        setResultMessage(response.message);
       }
     } catch (error: any) {
       setResult('rejected');
@@ -375,7 +374,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       Upload Email (.msg, .pdf, .eml, .txt)
                       <input type="file" className="hidden" accept=".msg,.pdf,.eml,.txt" onChange={handleFileUpload} />
                     </label>
-                    {isAnalyzing && <span className="text-sm text-[#42b0d5] animate-pulse">AI extracting details...</span>}
+                    {isAnalyzing && <span className="text-sm text-[#42b0d5] animate-pulse">Reading file...</span>}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Upload the email from your Line Manager confirming initial approval (Section 4.1.4).</p>
                   <p className="text-xs text-gray-500 mt-1">Best results: upload .eml or .txt if available.</p>
