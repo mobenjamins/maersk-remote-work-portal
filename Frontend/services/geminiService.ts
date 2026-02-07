@@ -53,6 +53,14 @@ export const initializeChat = () => {
   return chatInstance;
 };
 
+export const extractApprovalData = async (fileName: string): Promise<{ managerName: string; managerEmail: string }> => {
+  // Stub: in production, this would use Gemini to extract data from the uploaded document
+  return {
+    managerName: 'Line Manager',
+    managerEmail: 'manager@maersk.com',
+  };
+};
+
 export const sendMessageToGemini = async (message: string): Promise<string> => {
   if (!chatInstance) {
     initializeChat();
