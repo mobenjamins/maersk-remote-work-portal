@@ -191,13 +191,13 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
             <div className="flex p-0.5 bg-gray-100 rounded-sm">
               <button
                 onClick={() => setMapMode('home')}
-                className={`flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase transition-all ${mapMode === 'home' ? 'bg-white text-maersk-dark shadow-sm' : 'text-gray-400'}`}
+                className={`flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase transition-all ${mapMode === 'home' ? 'bg-white text-maersk-dark shadow-sm' : 'text-gray-500'}`}
               >
                 <Home size={12} /> Origin
               </button>
               <button
                 onClick={() => setMapMode('destination')}
-                className={`flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase transition-all ${mapMode === 'destination' ? 'bg-white text-maersk-dark shadow-sm' : 'text-gray-400'}`}
+                className={`flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase transition-all ${mapMode === 'destination' ? 'bg-white text-maersk-dark shadow-sm' : 'text-gray-500'}`}
               >
                 <Plane size={12} /> Destination
               </button>
@@ -260,7 +260,7 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
           onClick={() => { setFilterType('trend'); setFilterValue('july'); }}
         >
           <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-1">Volume Analysis</h3>
-          <p className="text-[11px] text-gray-400 mb-8 uppercase tracking-widest">Monthly Submissions</p>
+          <p className="text-[11px] text-gray-500 mb-8 uppercase tracking-widest">Monthly Submissions</p>
           <div className="flex-1 min-h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
@@ -322,11 +322,11 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-gray-50 border-y border-gray-100">
-                    <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Reference</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Employee</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Route</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Action</th>
+                    <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Reference</th>
+                    <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Employee</th>
+                    <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Route</th>
+                    <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Status</th>
+                    <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -401,7 +401,7 @@ const KPICard = ({ title, value, change, icon: Icon, color, active, delay = 0 }:
       </div>
       <div className="space-y-1">
         <h4 className="text-2xl font-semibold text-gray-900 tracking-tight">{value}</h4>
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{title}</p>
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{title}</p>
       </div>
     </motion.div>
   );

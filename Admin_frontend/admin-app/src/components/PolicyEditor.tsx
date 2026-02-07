@@ -121,7 +121,7 @@ const PolicyEditor = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center px-2">
-            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
               <Zap size={12} className="text-amber-500" /> Smart Clauses
             </h3>
             <button className="flex items-center gap-1 text-[10px] font-bold text-maersk-blue hover:underline uppercase tracking-widest">
@@ -260,7 +260,7 @@ const PolicyEditor = () => {
           </AnimatePresence>
 
           <div className="bg-gray-50 border border-gray-200 rounded-sm p-6">
-            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                <Info size={14} className="text-maersk-blue" />
                Governance Tip
             </h3>

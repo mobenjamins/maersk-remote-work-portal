@@ -69,7 +69,7 @@ const IntelligenceHub = () => {
           <p className="text-sm text-gray-500 font-light">Sentiment analysis and interaction patterns from the Smart Wizard.</p>
         </div>
         <div className="flex gap-2 p-1 bg-gray-100 rounded-sm border border-gray-200">
-           <span className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active Policy:</span>
+           <span className="px-3 py-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Active Policy:</span>
            <button className="px-3 py-1.5 text-[10px] font-bold bg-white text-maersk-blue rounded-sm shadow-sm border border-gray-200">
              V3.2.0 (Feb 2026)
            </button>
@@ -82,7 +82,7 @@ const IntelligenceHub = () => {
           <div className="flex justify-between items-start mb-8">
             <div>
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-1">Sentiment Distribution</h3>
-              <p className="text-xs text-gray-400 font-light italic">Quantifying employee emotional response during compliance checks</p>
+              <p className="text-xs text-gray-500 font-light italic">Quantifying employee emotional response during compliance checks</p>
             </div>
             <div className="flex gap-4 text-[10px] font-bold uppercase tracking-wider">
               <div className="flex items-center gap-2 text-red-500">
@@ -117,7 +117,7 @@ const IntelligenceHub = () => {
         {/* Topic Frequency */}
         <div className="bg-white border border-gray-200 rounded-sm p-6 shadow-sm flex flex-col">
           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-1">Query Analytics</h3>
-          <p className="text-[11px] text-gray-400 mb-8 uppercase tracking-widest">Most Discussed Topics</p>
+          <p className="text-[11px] text-gray-500 mb-8 uppercase tracking-widest">Most Discussed Topics</p>
 
           <div className="flex-1 min-h-[250px] relative flex flex-col items-center justify-center">
             <ResponsiveContainer width="100%" height={200}>
@@ -265,7 +265,7 @@ const IntelligenceHub = () => {
                  </div>
 
                  <div className="space-y-4">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Proposed Revision</label>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Proposed Revision</label>
                     <div className="relative">
                         <div className="absolute top-2 right-2 px-2 py-1 bg-emerald-500 text-white text-[8px] font-bold rounded-sm uppercase tracking-tighter shadow-sm">Suggested</div>
                         <textarea
@@ -277,12 +277,12 @@ const IntelligenceHub = () => {
 
                  <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 border border-gray-100 rounded-sm bg-gray-50">
-                        <div className="text-[10px] font-bold text-gray-400 uppercase mb-1">Expected Impact</div>
+                        <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">Expected Impact</div>
                         <div className="text-lg font-bold text-emerald-600">+14.2%</div>
                         <div className="text-[9px] text-gray-500">Predicted Approval Increase</div>
                     </div>
                     <div className="p-4 border border-gray-100 rounded-sm bg-gray-50">
-                        <div className="text-[10px] font-bold text-gray-400 uppercase mb-1">Sentiment Shift</div>
+                        <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">Sentiment Shift</div>
                         <div className="text-lg font-bold text-emerald-600">+32 pts</div>
                         <div className="text-[9px] text-gray-500">Predicted Sentiment Gain</div>
                     </div>

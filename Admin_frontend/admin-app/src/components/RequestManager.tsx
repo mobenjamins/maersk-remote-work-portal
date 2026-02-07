@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Download, X, AlertCircle, CheckCircle, Clock, XCircle, MoreVertical, BrainCircuit, Loader2 } from 'lucide-react';
+import { Search, Download, X, AlertCircle, CheckCircle, Clock, XCircle, MoreVertical, BrainCircuit } from 'lucide-react';
 import { getAdminRequests, type AdminRequest } from '../services/api';
 import { mockRequests, type Request } from '../data/mockData';
 
@@ -50,26 +50,24 @@ const RequestManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'escalated'>('all');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
-  const [hoveredEmployeeId, setHoveredEmployeeId] = useState<string | null>(null);
+  const [hoveredEmployeeId, setHoveredEmployeeId] = useState<string | number | null>(null);
   const [requests, setRequests] = useState<Request[]>(mockRequests);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadRequests();
-  }, []);
-
-  const loadRequests = async () => {
-    try {
-      const data = await getAdminRequests();
-      if (data.length > 0) {
-        setRequests(data.map(mapApiRequest));
+    let cancelled = false;
+    const loadRequests = async () => {
+      try {
+        const data = await getAdminRequests();
+        if (!cancelled && data.length > 0) {
+          setRequests(data.map((r, i) => mapApiRequest(r, i)));
+        }
+      } catch {
+        // keep mock data as fallback
       }
-    } catch {
-      // keep mock data as fallback
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    loadRequests();
+    return () => { cancelled = true; };
+  }, []);
 
   const filteredRequests = requests.filter(req => {
     const matchesSearch =
@@ -100,14 +98,6 @@ const RequestManager = () => {
       default: return <Clock size={12} />;
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 size={24} className="animate-spin text-maersk-blue" />
-      </div>
-    );
-  }
 
   return (
     <div className="p-8 space-y-8 h-full flex flex-col">
@@ -160,13 +150,13 @@ const RequestManager = () => {
           <table className="w-full text-left">
             <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
               <tr className="border-b border-gray-200">
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Reference</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Employee</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Route</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Dates</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Sentiment</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Status</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest"></th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Reference</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Employee</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Route</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Dates</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Sentiment</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Status</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -282,7 +272,7 @@ const RequestManager = () => {
                       {getStatusIcon(selectedRequest.status)}
                     </div>
                     <div>
-                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Current Status</div>
+                      <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Current Status</div>
                       <div className="text-sm font-bold text-gray-900 uppercase">{selectedRequest.status}</div>
                     </div>
                   </div>
@@ -290,7 +280,7 @@ const RequestManager = () => {
 
                 <div className="grid grid-cols-2 gap-8">
                   <section>
-                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Employee Details</h4>
+                    <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Employee Details</h4>
                     <div className="space-y-3">
                       <div>
                         <div className="text-xs text-gray-500">Full Name</div>
@@ -303,7 +293,7 @@ const RequestManager = () => {
                     </div>
                   </section>
                   <section>
-                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Trip Logistics</h4>
+                    <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Trip Logistics</h4>
                     <div className="space-y-3">
                       <div>
                         <div className="text-xs text-gray-500">Route</div>
@@ -318,7 +308,7 @@ const RequestManager = () => {
                 </div>
 
                 <section className="pt-6 border-t border-gray-100">
-                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Risk & Compliance Analysis</h4>
+                  <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4">Risk & Compliance Analysis</h4>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center p-3 bg-white border border-gray-100 rounded-sm shadow-sm">
                       <span className="text-sm text-gray-600">Permanent Establishment Risk</span>
