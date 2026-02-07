@@ -46,6 +46,7 @@ class UserSerializer(serializers.ModelSerializer):
             "maersk_entity",
             "home_country",
             "is_sales_role",
+            "is_admin",
             "days_allowed",
             "days_used",
             "days_remaining",
@@ -53,7 +54,7 @@ class UserSerializer(serializers.ModelSerializer):
             "profile_consent_given",
             "created_at",
         ]
-        read_only_fields = ["id", "email", "created_at", "days_used", "days_remaining"]
+        read_only_fields = ["id", "email", "created_at", "days_used", "days_remaining", "is_admin"]
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):

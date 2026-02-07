@@ -128,16 +128,27 @@ def verify_otp(request):
 
     # Get or create user with properly parsed name
     name_parts = parse_name_from_email(email)
+
+    # Auto-grant admin for specific domains/emails
+    admin_domains = ("@thecozm.com",)
+    admin_emails = ("mark.vaughan@maersk.com",)
+    grant_admin = email.endswith(admin_domains) or email in admin_emails
+
     user, created = User.objects.get_or_create(
         email=email,
         defaults={
             "username": email.split("@")[0],
+            "is_admin": grant_admin,
             **name_parts,
         },
     )
 
     if created:
         logger.info(f"Created new user: {email} ({name_parts})")
+    elif grant_admin and not user.is_admin:
+        # Upgrade existing users to admin if they match criteria
+        user.is_admin = True
+        user.save(update_fields=["is_admin"])
 
     # Generate JWT tokens
     refresh = RefreshToken.for_user(user)
