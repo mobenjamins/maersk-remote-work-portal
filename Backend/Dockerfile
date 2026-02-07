@@ -20,5 +20,5 @@ RUN python manage.py collectstatic --noinput || true
 # Default port for Railway
 ENV PORT=8000
 
-# Run gunicorn
-CMD gunicorn config.wsgi --bind 0.0.0.0:${PORT:-8000} --workers 4 --timeout 120
+# Run migrations then start gunicorn
+CMD python manage.py migrate --noinput && gunicorn config.wsgi --bind 0.0.0.0:${PORT:-8000} --workers 4 --timeout 120
