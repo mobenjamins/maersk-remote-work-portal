@@ -72,7 +72,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
       {/* Premium Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
         <div>
-            <h1 className="text-4xl font-light text-gray-900 tracking-tight">Remote Work <span className="font-semibold text-maersk-blue">Portal</span></h1>
+            <h1 className="text-4xl font-light text-gray-900 tracking-tight">SIRW <span className="font-semibold text-maersk-blue">Portal</span></h1>
             <p className="text-gray-500 mt-2 font-light text-lg">
               Welcome back, {user?.first_name || 'User'}. Manage your global mobility requests.
             </p>

@@ -54,9 +54,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="absolute inset-0 bg-[url('https://picsum.photos/seed/maersk_ship/1600/1200')] bg-cover opacity-30 mix-blend-overlay"></div>
             <div className="relative z-10 text-center p-12">
                 <div className="text-white text-6xl mb-6 opacity-90">★</div>
-                <h1 className="text-white text-4xl font-light tracking-wide mb-4">Remote Work Portal</h1>
+                <h1 className="text-white text-4xl font-light tracking-wide mb-4">Short-Term International Remote Work Portal</h1>
                 <p className="text-blue-200 text-lg font-light max-w-md mx-auto">
-                    Secure access to international remote work requests and compliance management.
+                    Submit, track and manage SIRW requests under the Global SIRW Policy.
                 </p>
             </div>
         </div>
