@@ -169,159 +169,98 @@ export const askPolicyQuestion = async (question: string, currentContext: string
 };
 
 /**
- * Extracts text from a PDF file using pdfjs-dist.
+ * Converts a File to a base64 string.
  */
-async function extractPdfText(file: File): Promise<string> {
-  try {
-    const pdfjsLib = await import('pdfjs-dist');
-    // Set worker source
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const textParts: string[] = [];
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const pageText = content.items
-        .map((item: any) => item.str)
-        .join(' ');
-      textParts.push(pageText);
-    }
-
-    return textParts.join('\n');
-  } catch (error) {
-    console.error('PDF extraction failed:', error);
-    return '';
+async function fileToBase64(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
   }
+  return btoa(binary);
 }
 
 /**
- * Extracts text from an .eml file (plain text email format).
+ * Gets the MIME type for Gemini's inline data based on file extension.
  */
-async function extractEmlData(file: File): Promise<{ senderName: string; senderEmail: string }> {
-  try {
-    const text = await file.text();
-
-    // Parse From header: "From: Name <email>" or "From: email"
-    const fromMatch = text.match(/^From:\s*(?:"?([^"<]*)"?\s*)?<?([^>\s]+@[^>\s]+)>?/mi);
-
-    return {
-      senderName: fromMatch?.[1]?.trim() || '',
-      senderEmail: fromMatch?.[2]?.trim() || '',
-    };
-  } catch (error) {
-    console.error('EML extraction failed:', error);
-    return { senderName: '', senderEmail: '' };
+function getMimeType(fileName: string): string {
+  const ext = fileName.toLowerCase().split('.').pop();
+  switch (ext) {
+    case 'pdf': return 'application/pdf';
+    case 'eml': return 'message/rfc822';
+    case 'msg': return 'application/vnd.ms-outlook';
+    default: return 'application/octet-stream';
   }
 }
 
 /**
  * Extracts manager data from an uploaded approval file.
- * - .eml files: parsed client-side for From header
- * - .pdf files: text extracted with pdfjs-dist, then sent to Gemini for name/email extraction
- * - .msg files: read as binary, attempt header parsing, fallback to Gemini
- * - fallback: returns empty strings for manual entry
+ * Uses Gemini's multimodal API to read the file directly.
+ * Falls back to text parsing for .eml files.
+ * Returns empty strings if extraction fails (user can enter manually).
  */
 export const extractApprovalData = async (file: File): Promise<{ managerName: string; managerEmail: string }> => {
   const fileName = file.name.toLowerCase();
 
-  // .eml files — parse client-side
+  // .eml files — try client-side text parsing first (fast, free)
   if (fileName.endsWith('.eml')) {
-    const emlData = await extractEmlData(file);
-    if (emlData.senderEmail) {
-      return { managerName: emlData.senderName, managerEmail: emlData.senderEmail };
-    }
-  }
-
-  // .pdf files — extract text, then use Gemini to find name/email
-  if (fileName.endsWith('.pdf')) {
-    const pdfText = await extractPdfText(file);
-
-    if (pdfText && pdfText.length > 20) {
-      try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-        const prompt = `
-          The following is the text content of an approval email or document from a manager at Maersk.
-          Extract the sender/manager's full name and email address.
-          Return ONLY valid JSON with keys "managerName" and "managerEmail".
-          If you cannot find the information, return empty strings for those fields.
-
-          DOCUMENT TEXT:
-          ${pdfText.substring(0, 3000)}
-        `;
-
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.0-flash',
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json"
-          }
-        });
-
-        const text = response.text;
-        if (text) {
-          const parsed = JSON.parse(text);
-          if (parsed.managerName || parsed.managerEmail) {
-            return { managerName: parsed.managerName || '', managerEmail: parsed.managerEmail || '' };
-          }
-        }
-      } catch (e) {
-        console.error("Gemini PDF extraction failed", e);
-      }
-    }
-  }
-
-  // .msg files — attempt to read as text for any email-like patterns
-  if (fileName.endsWith('.msg')) {
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      // Convert to string, replacing non-printable chars
-      const rawText = Array.from(bytes)
-        .map(b => (b >= 32 && b < 127) ? String.fromCharCode(b) : ' ')
-        .join('');
-
-      // Look for email patterns in the binary-to-text conversion
-      const emailMatch = rawText.match(/([a-zA-Z0-9._%+-]+@maersk\.com)/i);
-      const nameMatch = rawText.match(/From[:\s]*([A-Z][a-z]+ [A-Z][a-z]+)/);
-
-      if (emailMatch) {
+      const text = await file.text();
+      const fromMatch = text.match(/^From:\s*(?:"?([^"<]*)"?\s*)?<?([^>\s]+@[^>\s]+)>?/mi);
+      if (fromMatch?.[2]) {
         return {
-          managerName: nameMatch?.[1] || '',
-          managerEmail: emailMatch[1],
+          managerName: fromMatch[1]?.trim() || '',
+          managerEmail: fromMatch[2].trim(),
         };
       }
+    } catch (e) {
+      console.error('EML parsing failed:', e);
+    }
+  }
 
-      // Fallback: send raw text to Gemini
-      if (rawText.length > 50) {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const prompt = `
-          The following is raw text extracted from a .msg email file.
-          Extract the sender/manager's full name and email address (likely @maersk.com).
-          Return ONLY valid JSON with keys "managerName" and "managerEmail".
-          If you cannot find the information, return empty strings.
+  // For PDF and MSG files — send to Gemini as inline data (multimodal)
+  if (fileName.endsWith('.pdf') || fileName.endsWith('.msg')) {
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const base64Data = await fileToBase64(file);
+      const mimeType = getMimeType(fileName);
 
-          RAW TEXT:
-          ${rawText.substring(0, 3000)}
-        `;
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  mimeType,
+                  data: base64Data,
+                },
+              },
+              {
+                text: `This is an approval email or document from a line manager at Maersk, approving a colleague's request to work remotely from abroad.
+Extract the sender/manager's full name and their email address from this document.
+Return ONLY valid JSON with keys "managerName" and "managerEmail".
+If you cannot find the information, return empty strings for those fields.`,
+              },
+            ],
+          },
+        ],
+        config: {
+          responseMimeType: 'application/json',
+        },
+      });
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.0-flash',
-          contents: prompt,
-          config: { responseMimeType: "application/json" }
-        });
-
-        const text = response.text;
-        if (text) {
-          const parsed = JSON.parse(text);
+      const text = response.text;
+      if (text) {
+        const parsed = JSON.parse(text);
+        if (parsed.managerName || parsed.managerEmail) {
           return { managerName: parsed.managerName || '', managerEmail: parsed.managerEmail || '' };
         }
       }
     } catch (e) {
-      console.error("MSG extraction failed", e);
+      console.error('Gemini file extraction failed:', e);
     }
   }
 

@@ -113,9 +113,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
                         <div className="inline-flex items-center gap-2 px-3 py-1 bg-maersk-blue/20 text-maersk-blue rounded-full text-[10px] font-bold uppercase tracking-widest border border-maersk-blue/30">
                            <Plus size={12} /> New Application
                         </div>
-                        <h2 className="text-2xl font-light">Start <span className="font-bold">International</span> Remote Work</h2>
-                        <p className="text-gray-400 text-sm leading-relaxed max-w-md font-light">
-                            Ready to work from abroad? Submit your request for compliance review and manager approval.
+                        <h2 className="text-2xl font-light text-white">Start <span className="font-bold">SIRW</span> Request</h2>
+                        <p className="text-gray-300 text-sm leading-relaxed max-w-md font-light">
+                            Ready to work from abroad? Submit your Short-Term International Remote Work request for compliance review.
                         </p>
                         <button className="flex items-center gap-2 bg-maersk-blue text-white px-6 py-2.5 rounded-sm text-xs font-bold uppercase tracking-widest group-hover:bg-maersk-blue/90 transition-all">
                             Initiate Request <ChevronRight size={14} />

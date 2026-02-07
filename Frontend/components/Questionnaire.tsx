@@ -269,28 +269,27 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                   <p className="text-xs text-gray-500 mt-1">Upload the email from your Line Manager confirming initial approval (Section 4.1.4).</p>
                 </div>
 
-                {(formData.managerName || formData.managerEmail || isAnalyzing) && (
-                  <div className="grid grid-cols-2 gap-6 bg-gray-50 p-6 rounded-sm border border-gray-200">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">Manager Name</label>
-                      <input
-                        value={formData.managerName}
-                        onChange={(e) => handleChange('managerName', e.target.value)}
-                        placeholder="Waiting for upload..."
-                        className="w-full bg-transparent border-b border-gray-300 py-2 focus:outline-none text-gray-800 placeholder-gray-400"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">Manager Email</label>
-                      <input
-                        value={formData.managerEmail}
-                        onChange={(e) => handleChange('managerEmail', e.target.value)}
-                        placeholder="Waiting for upload..."
-                        className="w-full bg-transparent border-b border-gray-300 py-2 focus:outline-none text-gray-800 placeholder-gray-400"
-                      />
-                    </div>
+                <div className="grid grid-cols-2 gap-6 bg-gray-50 p-6 rounded-sm border border-gray-200">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Manager Name</label>
+                    <input
+                      value={formData.managerName}
+                      onChange={(e) => handleChange('managerName', e.target.value)}
+                      placeholder="e.g. Lars Jensen"
+                      className="w-full bg-white border border-gray-300 rounded-sm p-3 focus:border-[#42b0d5] outline-none text-gray-800 placeholder-gray-400"
+                    />
                   </div>
-                )}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Manager Email</label>
+                    <input
+                      value={formData.managerEmail}
+                      onChange={(e) => handleChange('managerEmail', e.target.value)}
+                      placeholder="manager@maersk.com"
+                      className="w-full bg-white border border-gray-300 rounded-sm p-3 focus:border-[#42b0d5] outline-none text-gray-800 placeholder-gray-400"
+                    />
+                  </div>
+                  <p className="col-span-2 text-xs text-gray-500">Auto-filled from upload, or enter manually.</p>
+                </div>
               </div>
             )}
 
