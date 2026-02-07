@@ -12,10 +12,11 @@ class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def validate_email(self, value):
-        """Validate that email is a Maersk domain."""
-        if not value.endswith("@maersk.com"):
+        """Validate that email is a Maersk or The Cozm domain."""
+        allowed_domains = ("@maersk.com", "@thecozm.com")
+        if not value.endswith(allowed_domains):
             raise serializers.ValidationError(
-                "Only @maersk.com email addresses are allowed."
+                "Only @maersk.com and @thecozm.com email addresses are allowed."
             )
         return value.lower()
 
