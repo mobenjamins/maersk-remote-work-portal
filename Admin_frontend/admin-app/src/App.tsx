@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { initAuth, getCurrentUser, isAuthenticated, logout } from './services/api';
-import { User } from './types';
+import { initAuth, isAuthenticated, logout } from './services/api';
+import type { User } from './types';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Header from './components/Header';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { login, verifyOTP } from '../services/api';
-import { User } from '../types';
+import type { User } from '../types';
 import '../styles/Login.css';
 
 interface LoginProps {

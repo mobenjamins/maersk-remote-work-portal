@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAdminDashboard, getAdminRequests } from '../services/api';
-import { AdminAnalytics, AdminRequest } from '../types';
+import type { AdminAnalytics, AdminRequest } from '../types';
 import '../styles/Dashboard.css';
 
 export default function Dashboard() {
