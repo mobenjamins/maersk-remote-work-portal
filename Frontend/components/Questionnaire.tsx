@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, createRequest } from '../services/api';
 import { RequestFormData } from '../types';
 import { extractApprovalData } from '../services/geminiService';
+import { CountryAutocomplete } from './CountryAutocomplete';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 
@@ -68,13 +69,24 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const resetProfile = () => {
+    setFormData(prev => ({
+      ...prev,
+      firstName: '',
+      lastName: '',
+      homeCountry: '',
+      managerName: '',
+      managerEmail: '',
+    }));
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setIsAnalyzing(true);
 
       try {
-        const data = await extractApprovalData(file.name);
+        const data = await extractApprovalData(file);
         setFormData(prev => ({
           ...prev,
           managerName: data.managerName,
@@ -116,13 +128,22 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
 
       if (request.status === 'approved') {
         setResult('approved');
-        setResultMessage("Your trip matches our safe harbour criteria. An automated confirmation email has been sent.");
+        setResultMessage("Your SIRW request meets the safe harbour criteria under the Global SIRW Policy (Section 4.1). A confirmation has been sent to you and your Line Manager. Your employment terms and contract remain unchanged (Section 4.1.3). Please note: it is your responsibility to track your workdays against the 20-day annual limit.");
       } else if (request.status === 'escalated') {
         setResult('escalated');
-        setResultMessage("Your request requires manual review by the Global Mobility team. You will be contacted within 2 business days.");
+        setResultMessage("Your request has been referred to Global Mobility for review with specialist vendor input (Section 5 — Extended SIRW). You and your Line Manager will be contacted within 2 business days.");
       } else {
         setResult('rejected');
-        setResultMessage((request as any).decision_reason || "One or more compliance criteria were not met.");
+        const reason = (request as any).decision_reason || '';
+        if (reason.toLowerCase().includes('right to work') || reason.toLowerCase().includes('immigration')) {
+          setResultMessage("Section 4.1.3 — Immigration: You must have the legal right to work in the destination country. The right to work is not the same as the right to visit. Contact Global Mobility Partners for clarification.");
+        } else if (reason.toLowerCase().includes('sales') || reason.toLowerCase().includes('role') || reason.toLowerCase().includes('permanent establishment')) {
+          setResultMessage("Section 4.1.1 — Eligibility: Your role category falls under restricted activities that may create a Permanent Establishment risk, including commercial, sales, procurement, and senior executive roles.");
+        } else if (reason.toLowerCase().includes('duration') || reason.toLowerCase().includes('days') || reason.toLowerCase().includes('exceed')) {
+          setResultMessage("Section 4.1.2 — Duration: SIRW is limited to a strict maximum of 20 workdays per calendar year. For exceptional circumstances, see Section 5.");
+        } else {
+          setResultMessage(reason || "One or more compliance criteria were not met. Please review the SIRW Policy sections 4.1.1–4.1.3 for details.");
+        }
       }
     } catch (error: any) {
       setResult('rejected');
@@ -215,10 +236,12 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">First Name</label>
                     <input value={formData.firstName} readOnly className="w-full bg-gray-50 border border-gray-200 text-gray-500 rounded-sm p-3" />
+                    <p className="text-xs text-gray-500 mt-1">Pre-filled from your Maersk profile. Contact HR if incorrect.</p>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Last Name</label>
                     <input value={formData.lastName} readOnly className="w-full bg-gray-50 border border-gray-200 text-gray-500 rounded-sm p-3" />
+                    <p className="text-xs text-gray-500 mt-1">Pre-filled from your Maersk profile. Contact HR if incorrect.</p>
                   </div>
                   <div className="col-span-2">
                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Home Country</label>
@@ -227,6 +250,10 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       onChange={(e) => handleChange('homeCountry', e.target.value)}
                       className="w-full bg-white border border-gray-300 rounded-sm p-3 focus:border-[#42b0d5] outline-none"
                     />
+                    <p className="text-xs text-gray-500 mt-1">The country where your Maersk employment contract is based.</p>
+                    <button onClick={resetProfile} className="text-xs text-gray-500 hover:text-red-500 mt-2 transition-colors">
+                      Reset profile data
+                    </button>
                   </div>
                 </div>
 
@@ -234,20 +261,21 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                   <label className="block text-sm font-semibold text-gray-800 mb-4">Line Manager Approval</label>
                   <div className="flex items-center space-x-4">
                     <label className="cursor-pointer bg-white border border-gray-300 hover:border-[#42b0d5] text-gray-700 px-4 py-2 rounded-sm text-sm font-medium transition-all shadow-sm">
-                      Upload Email (.msg, .pdf)
+                      Upload Email (.msg, .pdf, .eml)
                       <input type="file" className="hidden" accept=".msg,.pdf,.eml" onChange={handleFileUpload} />
                     </label>
                     {isAnalyzing && <span className="text-sm text-[#42b0d5] animate-pulse">AI extracting details...</span>}
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">Upload the email from your Line Manager confirming initial approval (Section 4.1.4).</p>
                 </div>
 
-                {(formData.managerName || isAnalyzing) && (
+                {(formData.managerName || formData.managerEmail || isAnalyzing) && (
                   <div className="grid grid-cols-2 gap-6 bg-gray-50 p-6 rounded-sm border border-gray-200">
                     <div>
                       <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">Manager Name</label>
                       <input
                         value={formData.managerName}
-                        readOnly
+                        onChange={(e) => handleChange('managerName', e.target.value)}
                         placeholder="Waiting for upload..."
                         className="w-full bg-transparent border-b border-gray-300 py-2 focus:outline-none text-gray-800 placeholder-gray-400"
                       />
@@ -256,7 +284,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">Manager Email</label>
                       <input
                         value={formData.managerEmail}
-                        readOnly
+                        onChange={(e) => handleChange('managerEmail', e.target.value)}
                         placeholder="Waiting for upload..."
                         className="w-full bg-transparent border-b border-gray-300 py-2 focus:outline-none text-gray-800 placeholder-gray-400"
                       />
@@ -271,18 +299,14 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
               <div className="space-y-8">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Destination Country</label>
-                  <select
-                    className="w-full bg-white border border-gray-300 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none"
+                  <CountryAutocomplete
                     value={formData.destinationCountry}
-                    onChange={(e) => handleChange('destinationCountry', e.target.value)}
-                  >
-                    <option value="">Select a country...</option>
-                    <option value="United Kingdom">United Kingdom</option>
-                    <option value="Spain">Spain</option>
-                    <option value="India">India</option>
-                    <option value="United States">United States</option>
-                    <option value="Singapore">Singapore</option>
-                  </select>
+                    onChange={(val) => handleChange('destinationCountry', val)}
+                    showBlockedWarning={true}
+                    allowBlocked={false}
+                    placeholder="Search for a country..."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">SIRW cannot be performed in sanctioned countries or those with no Maersk entity (Appendix A).</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
@@ -294,6 +318,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       onChange={(e) => handleChange('startDate', e.target.value)}
                       value={formData.startDate}
                     />
+                    <p className="text-xs text-gray-500 mt-1">The first working day you plan to work remotely from abroad.</p>
                   </div>
                   <div>
                     <div className="flex justify-between">
@@ -309,6 +334,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       onChange={(e) => handleChange('endDate', e.target.value)}
                       value={formData.endDate}
                     />
+                    <p className="text-xs text-gray-500 mt-1">Policy limit: maximum 20 workdays per calendar year (Section 4.1.2).</p>
                   </div>
                 </div>
               </div>
@@ -336,6 +362,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       <p className="text-gray-500 text-sm mt-1">
                         I confirm I have the legal right to work (Citizenship or Valid Visa) in {formData.destinationCountry || 'the destination country'} for the duration of this trip.
                       </p>
+                      <p className="text-xs text-gray-500 mt-1">The right to work is not the same as the right to visit a country (Section 4.1.3).</p>
                     </div>
                   </div>
                 </div>
@@ -363,6 +390,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                         <li>Roles restricted for legal reasons (e.g. data security regulations, sanctioned countries)</li>
                         <li>Roles that create a <strong>permanent establishment</strong> (e.g. negotiating/signing contracts of value, commercial/sales/procurement roles, Senior Execs)</li>
                       </ul>
+                      <p className="text-xs text-gray-500 mt-2">See Section 4.1.1 for the full list of ineligible categories.</p>
                     </div>
                   </div>
                 </div>

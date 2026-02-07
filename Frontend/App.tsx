@@ -4,6 +4,7 @@ import { Dashboard } from './components/Dashboard';
 import { Login } from './components/Login';
 import { Questionnaire } from './components/Questionnaire';
 import { PolicyChatbot } from './components/PolicyChatbot';
+import { PolicyModal } from './components/PolicyModal';
 import { ViewState, RequestFormData } from './types';
 import { initAuth, logout, User } from './services/api';
 
@@ -11,6 +12,7 @@ const App: React.FC = () => {
   const [viewState, setViewState] = useState<ViewState>(ViewState.LOGIN);
   const [user, setUser] = useState<User | null>(null);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [currentFormData, setCurrentFormData] = useState<RequestFormData | undefined>(undefined);
 
   useEffect(() => {
@@ -41,7 +43,11 @@ const App: React.FC = () => {
         return (
           <>
             <Header user={user} onLogout={handleLogout} />
-            <Dashboard setViewState={setViewState} user={user} />
+            <Dashboard
+              setViewState={setViewState}
+              user={user}
+              onOpenPolicy={() => setIsPolicyModalOpen(true)}
+            />
           </>
         );
 
@@ -53,7 +59,7 @@ const App: React.FC = () => {
               <div className="flex items-center justify-between mb-8">
                 <button
                   onClick={() => { setViewState(ViewState.DASHBOARD); setIsChatbotOpen(false); }}
-                  className="text-xs font-bold text-gray-400 hover:text-[#42b0d5] flex items-center uppercase tracking-widest transition-colors"
+                  className="text-xs font-bold text-gray-600 hover:text-[#42b0d5] flex items-center uppercase tracking-widest transition-colors"
                 >
                   ← Back to Dashboard
                 </button>
@@ -101,7 +107,13 @@ const App: React.FC = () => {
                             </li>
                           </ul>
 
-                          <div className="mt-8 pt-6 border-t border-gray-100">
+                          <div className="mt-6 pt-4 border-t border-gray-100">
+                            <button
+                              onClick={() => setIsPolicyModalOpen(true)}
+                              className="w-full py-2.5 text-[#42b0d5] hover:underline text-[10px] font-bold uppercase tracking-widest mb-3"
+                            >
+                              View Full Policy
+                            </button>
                             <button
                               onClick={() => setIsChatbotOpen(true)}
                               className="w-full py-3 px-4 bg-[#42b0d5] text-white rounded-sm text-sm font-semibold hover:bg-[#3aa3c7] transition-all flex items-center justify-center space-x-2 shadow-sm"
@@ -142,7 +154,12 @@ const App: React.FC = () => {
     }
   };
 
-  return <>{renderContent()}</>;
+  return (
+    <>
+      {renderContent()}
+      <PolicyModal isOpen={isPolicyModalOpen} onClose={() => setIsPolicyModalOpen(false)} />
+    </>
+  );
 };
 
 export default App;

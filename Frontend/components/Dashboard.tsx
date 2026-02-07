@@ -19,9 +19,10 @@ import {
 interface DashboardProps {
   setViewState: (view: ViewState) => void;
   user?: User | null;
+  onOpenPolicy?: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpenPolicy }) => {
   const [requests, setRequests] = useState<RemoteWorkRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [annualBalance, setAnnualBalance] = useState<AnnualBalanceResponse | null>(null);
@@ -52,7 +53,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user }) => {
       rejected: { icon: XCircle, color: 'bg-red-50 text-red-700 border-red-100', label: 'Rejected' },
       escalated: { icon: AlertCircle, color: 'bg-orange-50 text-orange-700 border-orange-100', label: 'Escalated' },
       completed: { icon: CheckCircle, color: 'bg-gray-50 text-gray-700 border-gray-100', label: 'Completed' },
-      cancelled: { icon: XCircle, color: 'bg-gray-50 text-gray-400 border-gray-100', label: 'Cancelled' },
+      cancelled: { icon: XCircle, color: 'bg-gray-50 text-gray-600 border-gray-100', label: 'Cancelled' },
     };
     return configs[status] || { icon: Clock, color: 'bg-gray-50 text-gray-600 border-gray-100', label: status };
   };
@@ -82,12 +83,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user }) => {
           className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm flex items-center gap-6"
         >
              <div className="text-right border-r border-gray-100 pr-6">
-                <div className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">
+                <div className="text-[10px] text-gray-600 uppercase tracking-widest font-bold mb-1">
                     {annualBalance?.year || new Date().getFullYear()} Allowance
                 </div>
                 <div className="text-3xl font-light text-gray-900 leading-none flex items-baseline gap-1">
                     {annualBalance?.days_remaining ?? user?.days_remaining ?? 20} 
-                    <span className="text-sm text-gray-400 font-medium tracking-tight">/ {annualBalance?.days_allowed ?? user?.days_allowed ?? 20}d</span>
+                    <span className="text-sm text-gray-500 font-medium tracking-tight">/ {annualBalance?.days_allowed ?? user?.days_allowed ?? 20}d</span>
                 </div>
              </div>
              <div>
@@ -138,13 +139,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user }) => {
                 </div>
                 
                 {loading ? (
-                  <div className="flex-1 flex items-center justify-center text-gray-400 gap-3 italic">
+                  <div className="flex-1 flex items-center justify-center text-gray-500 gap-3 italic">
                     <div className="w-4 h-4 border-2 border-maersk-blue border-t-transparent rounded-full animate-spin"></div>
                     Loading your history...
                   </div>
                 ) : requests.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-4 animate-fade-in">
-                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">
                        <Plus size={32} />
                     </div>
                     <div>
@@ -162,7 +163,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user }) => {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-gray-50/50 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            <tr className="bg-gray-50/50 border-b border-gray-100 text-[10px] font-bold text-gray-600 uppercase tracking-widest">
                                 <th className="px-8 py-4">Reference</th>
                                 <th className="px-8 py-4">Destination</th>
                                 <th className="px-8 py-4 text-center">Status</th>
@@ -185,7 +186,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user }) => {
                                             <div className="text-xs font-bold text-maersk-blue font-mono group-hover:underline">
                                                 {request.reference_number}
                                             </div>
-                                            <div className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-tighter">
+                                            <div className="text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-tighter">
                                                 {request.duration_days} Working Days
                                             </div>
                                         </td>
@@ -214,7 +215,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user }) => {
                         </tbody>
                     </table>
                     <div className="p-4 flex justify-between items-center bg-gray-50/30 border-t border-gray-100 px-8">
-                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                       <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                           Viewing {Math.min(requests.length, 5)} of {requests.length} total
                        </span>
                        <button className="text-[10px] font-bold text-maersk-blue hover:underline uppercase tracking-widest">View All history</button>
@@ -248,9 +249,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user }) => {
                             </li>
                         ))}
                     </ul>
-                    <button className="w-full py-3 bg-gray-50 border border-gray-200 text-gray-600 hover:text-maersk-blue hover:border-maersk-blue transition-all rounded-sm text-[10px] font-bold uppercase tracking-widest shadow-sm">
+                    <button
+                      onClick={() => window.open(`${import.meta.env.BASE_URL}policy/Maersk-SIRW-Policy.pdf`, '_blank')}
+                      className="w-full py-3 bg-gray-50 border border-gray-200 text-gray-600 hover:text-maersk-blue hover:border-maersk-blue transition-all rounded-sm text-[10px] font-bold uppercase tracking-widest shadow-sm"
+                    >
                         Full Policy PDF
                     </button>
+                    {onOpenPolicy && (
+                      <button
+                        onClick={onOpenPolicy}
+                        className="w-full py-2.5 text-maersk-blue hover:underline text-[10px] font-bold uppercase tracking-widest"
+                      >
+                          View Full Policy
+                      </button>
+                    )}
                 </div>
             </div>
 
@@ -265,7 +277,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user }) => {
                     { label: 'Role Category', value: user.is_sales_role ? 'Sales / Commercial' : 'Operational' }
                   ].map((item, i) => (
                     <div key={i} className="flex flex-col border-b border-gray-50 pb-2 last:border-0">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{item.label}</span>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{item.label}</span>
                         <span className="text-sm font-semibold text-gray-900">{item.value}</span>
                     </div>
                   ))}
