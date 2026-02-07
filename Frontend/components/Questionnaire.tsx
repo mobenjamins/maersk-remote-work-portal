@@ -226,13 +226,9 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
   const maxDate = getMaxEndDate();
   const workdaysSelected = countWorkdays(formData.startDate, formData.endDate);
   const showDurationWarning = workdaysSelected > 14 && workdaysSelected <= 20;
-  const managerEmailHasValue = formData.managerEmail.trim().length > 0;
-  const managerEmailLooksValid = managerEmailHasValue && isValidEmail(formData.managerEmail);
   const dateOrderError = formData.startDate && formData.endDate && new Date(formData.endDate) < new Date(formData.startDate)
     ? 'End date must be after the start date.'
     : '';
-  const datesLookGood = formData.startDate && formData.endDate && !dateOrderError;
-  const destinationLooksGood = formData.destinationCountry.trim().length > 0;
 
   useEffect(() => {
     let isActive = true;
@@ -376,12 +372,13 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                   <label className="block text-sm font-semibold text-gray-800 mb-4">Line Manager Approval</label>
                   <div className="flex items-center space-x-4">
                     <label className="cursor-pointer bg-white border border-gray-300 hover:border-[#42b0d5] text-gray-700 px-4 py-2 rounded-sm text-sm font-medium transition-all shadow-sm">
-                      Upload Email (.msg, .pdf, .eml)
-                      <input type="file" className="hidden" accept=".msg,.pdf,.eml" onChange={handleFileUpload} />
+                      Upload Email (.msg, .pdf, .eml, .txt)
+                      <input type="file" className="hidden" accept=".msg,.pdf,.eml,.txt" onChange={handleFileUpload} />
                     </label>
                     {isAnalyzing && <span className="text-sm text-[#42b0d5] animate-pulse">AI extracting details...</span>}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Upload the email from your Line Manager confirming initial approval (Section 4.1.4).</p>
+                  <p className="text-xs text-gray-500 mt-1">Best results: upload .eml or .txt if available.</p>
                   {uploadError && (
                     <p className="text-xs text-amber-600 mt-2">{uploadError}</p>
                   )}
@@ -408,12 +405,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       placeholder="manager@maersk.com"
                       className="w-full bg-white border border-gray-300 rounded-sm p-3 focus:border-[#42b0d5] outline-none text-gray-800 placeholder-gray-400"
                     />
-                    {managerEmailHasValue && !managerEmailLooksValid && (
-                      <p className="text-xs text-red-600 mt-2">That email does not look right.</p>
-                    )}
-                    {managerEmailLooksValid && (
-                      <p className="text-xs text-emerald-600 mt-2">Email looks good.</p>
-                    )}
                     {validationErrors.managerEmail && (
                       <p className="text-xs text-red-600 mt-2">{validationErrors.managerEmail}</p>
                     )}
@@ -436,9 +427,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                     placeholder="Search for a country..."
                   />
                   <p className="text-xs text-gray-500 mt-1">SIRW cannot be performed in sanctioned countries or those with no Maersk entity (Appendix A).</p>
-                  {destinationLooksGood && !validationErrors.destinationCountry && (
-                    <p className="text-xs text-emerald-600 mt-2">Destination selected.</p>
-                  )}
                   {validationErrors.destinationCountry && (
                     <p className="text-xs text-red-600 mt-2">{validationErrors.destinationCountry}</p>
                   )}
@@ -454,9 +442,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       value={formData.startDate}
                     />
                     <p className="text-xs text-gray-500 mt-1">The first working day you plan to work remotely from abroad.</p>
-                    {formData.startDate && !validationErrors.startDate && (
-                      <p className="text-xs text-emerald-600 mt-2">Start date looks good.</p>
-                    )}
                     {validationErrors.startDate && (
                       <p className="text-xs text-red-600 mt-2">{validationErrors.startDate}</p>
                     )}
@@ -480,15 +465,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       value={formData.endDate}
                     />
                     <p className="text-xs text-gray-500 mt-1">Policy limit: maximum 20 workdays per calendar year (Section 4.1.2).</p>
-                    {workdaysSelected > 0 && (
-                      <p className="text-xs text-gray-500 mt-1">Workdays selected: {workdaysSelected}</p>
-                    )}
-                    {dateOrderError && (
-                      <p className="text-xs text-red-600 mt-1">{dateOrderError}</p>
-                    )}
-                    {datesLookGood && !validationErrors.endDate && (
-                      <p className="text-xs text-emerald-600 mt-1">Dates look good.</p>
-                    )}
                     {showDurationWarning && (
                       <p className="text-xs text-amber-600 mt-1">
                         Heads up: trips longer than 14 workdays may need extra review, even if they are under 20.

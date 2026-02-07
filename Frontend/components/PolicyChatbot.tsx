@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { RequestFormData } from '../types';
 import { askPolicyQuestion } from '../services/geminiService';
+import { createChatSession, sendChatMessage } from '../services/api';
 
 interface PolicyChatbotProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const PolicyChatbot: React.FC<PolicyChatbotProps> = ({ isOpen, onClose, f
     }
   ]);
   const [isThinking, setIsThinking] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,10 +41,22 @@ export const PolicyChatbot: React.FC<PolicyChatbotProps> = ({ isOpen, onClose, f
     setMessages(prev => [...prev, { role: 'user', text: textToSend }]);
     setIsThinking(true);
 
-    const response = await askPolicyQuestion(textToSend, "Smart Wizard", formData || {});
+    let responseText = '';
+    try {
+      let activeSessionId = sessionId;
+      if (!activeSessionId) {
+        const session = await createChatSession();
+        activeSessionId = session.session_id;
+        setSessionId(activeSessionId);
+      }
+      const response = await sendChatMessage(textToSend, activeSessionId);
+      responseText = response.text || "I couldn't find an answer to that in the policy.";
+    } catch (error) {
+      responseText = await askPolicyQuestion(textToSend, "Smart Wizard", formData || {});
+    }
 
     setIsThinking(false);
-    setMessages(prev => [...prev, { role: 'assistant', text: response }]);
+    setMessages(prev => [...prev, { role: 'assistant', text: responseText }]);
   };
 
   const suggestions = ["What fields are mandatory?", "Explain 'Right to Work'", "List restricted roles"];

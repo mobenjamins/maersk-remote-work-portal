@@ -215,9 +215,21 @@ function getMimeType(fileName: string): string {
     case 'pdf': return 'application/pdf';
     case 'eml': return 'message/rfc822';
     case 'msg': return 'application/vnd.ms-outlook';
+    case 'txt': return 'text/plain';
     default: return 'application/octet-stream';
   }
 }
+
+const extractManagerFromText = (text: string): { managerName: string; managerEmail: string } => {
+  const fromMatch = text.match(/^From:\s*(?:"?([^"<\n]*)"?\s*)?<?([^>\s]+@[^>\s]+)>?/mi);
+  const emailMatch = text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+  const signatureMatch = text.match(/(?:Regards|Best|Thanks|Kind regards|Sincerely)[,]?\s*\n([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/i);
+
+  const managerEmail = fromMatch?.[2]?.trim() || emailMatch?.[1]?.trim() || '';
+  const managerName = fromMatch?.[1]?.trim() || signatureMatch?.[1]?.trim() || '';
+
+  return { managerName, managerEmail };
+};
 
 /**
  * Extracts manager data from an uploaded approval file.
@@ -228,19 +240,16 @@ function getMimeType(fileName: string): string {
 export const extractApprovalData = async (file: File): Promise<{ managerName: string; managerEmail: string }> => {
   const fileName = file.name.toLowerCase();
 
-  // .eml files — try client-side text parsing first (fast, free)
-  if (fileName.endsWith('.eml')) {
+  // .eml or .txt files — try client-side text parsing first (fast, free)
+  if (fileName.endsWith('.eml') || fileName.endsWith('.txt')) {
     try {
       const text = await file.text();
-      const fromMatch = text.match(/^From:\s*(?:"?([^"<]*)"?\s*)?<?([^>\s]+@[^>\s]+)>?/mi);
-      if (fromMatch?.[2]) {
-        return {
-          managerName: fromMatch[1]?.trim() || '',
-          managerEmail: fromMatch[2].trim(),
-        };
+      const extracted = extractManagerFromText(text);
+      if (extracted.managerEmail || extracted.managerName) {
+        return extracted;
       }
     } catch (e) {
-      console.error('EML parsing failed:', e);
+      console.error('Text parsing failed:', e);
     }
   }
 
@@ -250,6 +259,13 @@ export const extractApprovalData = async (file: File): Promise<{ managerName: st
       const apiKey = getGeminiApiKey();
       if (!apiKey) {
         console.warn('Gemini API key not configured for file extraction');
+        if (fileName.endsWith('.msg')) {
+          const rawText = await file.text();
+          const extracted = extractManagerFromText(rawText);
+          if (extracted.managerEmail || extracted.managerName) {
+            return extracted;
+          }
+        }
         return { managerName: '', managerEmail: '' };
       }
 
