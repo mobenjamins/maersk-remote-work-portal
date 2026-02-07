@@ -1,0 +1,27 @@
+{
+  "icons": [],
+  "images": [],
+  "css": [
+    "https://www.maersk.com/schedules/assets/index-CcTDttU6.css",
+    "https://www.maersk.com/schedules/assets/main-Q_L4OTqQ.css"
+  ],
+  "js": [
+    "https://www.maersk.com/schedules/assets/main-CJ2taReO.js"
+  ],
+  "fonts": [
+    "https://assets.maerskline.com/sharedfonts/maeu/headline/MaerskHeadline-Light.woff2",
+    "https://assets.maerskline.com/sharedfonts/maeu/headline/MaerskHeadline-Regular.woff2",
+    "https://assets.maerskline.com/sharedfonts/maeu/text/MaerskText-Bold.woff2",
+    "https://assets.maerskline.com/sharedfonts/maeu/text/MaerskText-Regular.woff2"
+  ],
+  "other": [
+    "https://www.maersk.com/ZXKR_VCeJ-3G_3VkJQs4/iOXNkG7cubbEGkim3S/DFsbWwE/IjhbB/SRnNgkC",
+    "https://api.maersk.com",
+    "https://app.launchdarkly.com",
+    "https://assets.maerskline.com",
+    "https://www.googletagmanager.com",
+    "https://www.maersk.com/akam/13/3e929101",
+    "https://www.maersk.com/akam/13/pixel_3e929101?a=dD1lZTZhN2NiMzI2ZTllZDRlY2Q0Yzc2Y2UyOGExYjFlMjljNWFkYjVkJmpzPW9mZg==",
+    "https://www.maersk.com/static/c84b213b49b4488d1796395f48d13b19892400114f7597"
+  ]
+}

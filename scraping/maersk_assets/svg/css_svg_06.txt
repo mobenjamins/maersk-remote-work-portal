@@ -1,0 +1,1 @@
+data:image/svg+xml,<svg part="icon" id="mi-chevron-up" shape-rendering="geometricPrecision" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M10.517 7H9.483l-5.1 6.072-.766-.644 5.1-6.071A1 1 0 0 1 9.483 6h1.034a1 1 0 0 1 .766.357l5.1 6.071-.766.644L10.517 7z"/></svg>'

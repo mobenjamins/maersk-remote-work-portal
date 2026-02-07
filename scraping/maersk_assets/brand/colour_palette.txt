@@ -1,0 +1,264 @@
+=== Maersk Brand Colours ===
+
+HEX:
+  #000
+  #0000
+  #0006
+  #0073ab
+  #d3d3d3
+  #f7f7f7
+  #fff
+
+RGB/RGBA:
+  rgb(0, 119, 178)
+  rgb(0,36,61)
+  rgb(0,62,98)
+  rgb(0,89,134)
+  rgb(106,106,106)
+  rgb(120,200,226)
+  rgb(128,104,20)
+  rgb(129, 0, 13)
+  rgb(138,138,138)
+  rgb(158,215,234)
+  rgb(161,209,232)
+  rgb(166, 0, 16)
+  rgb(179, 146, 29)
+  rgb(179,179,179)
+  rgb(184,0,18)
+  rgb(19,51,16)
+  rgb(197,229,194)
+  rgb(20, 20, 20)
+  rgb(20,20,20)
+  rgb(209,236,245)
+  rgb(212,212,212)
+  rgb(220,246,217)
+  rgb(226,226,226)
+  rgb(226,243,249)
+  rgb(226,243,251)
+  rgb(230, 187, 37)
+  rgb(233,178,183)
+  rgb(240,240,240)
+  rgb(247,247,247)
+  rgb(252,221,224)
+  rgb(255,208,41)
+  rgb(255,235,168)
+  rgb(255,241,194)
+  rgb(255,255,255)
+  rgb(50, 133, 41)
+  rgb(50,133,41)
+  rgb(54,54,54)
+  rgb(55,0,5)
+  rgb(58, 154, 48)
+  rgb(64,171,53)
+  rgb(66,176,213)
+  rgb(76,76,76)
+  rgb(77,62,12)
+  rgb(96,189,220)
+  rgba(0, 0, 0, .03)
+  rgba(0, 0, 0, .04)
+  rgba(184, 0, 18, .06)
+  rgba(184, 0, 18, .1)
+  rgba(20, 20, 20, .1)
+  rgba(20, 20, 20, .3)
+  rgba(20, 20, 20, .5)
+  rgba(20, 20, 20, .7)
+  rgba(20, 20, 20, .9)
+  rgba(20,20,20,.06)
+  rgba(20,20,20,.12)
+  rgba(20,20,20,.18)
+  rgba(255, 255, 255, .1)
+  rgba(255, 255, 255, .3)
+  rgba(255, 255, 255, .5)
+  rgba(255, 255, 255, .7)
+  rgba(255, 255, 255, .9)
+  rgba(255,255,255,.12)
+  rgba(255,255,255,.2)
+  rgba(66,176,213,.12)
+  rgba(66,176,213,.24)
+
+CSS Variables:
+  -1px
+  -3px
+  .2s
+  .35s
+  .5
+  .5s
+  .75s
+  0px
+  1024px
+  1025px
+  10px
+  11px
+  12
+  121px
+  12px
+  1440px
+  1441px
+  14px
+  16px
+  18px
+  1920px
+  1921px
+  1px
+  2
+  20px
+  22px
+  24px
+  25px
+  26px
+  280px
+  28px
+  2px
+  300
+  32px
+  38px
+  3px
+  400
+  40px
+  480px
+  48px
+  4px
+  500
+  50px
+  56px
+  5px
+  6
+  600px
+  640px
+  641px
+  6px
+  700
+  7px
+  80px
+  8px
+  9999
+  :part(icon){-webkit-transform:rotate(-180deg)
+  Arial, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic"}[lang=ja]{--mds_brand_typography_headline_font-family-fallback: Arial, -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", Meiryo
+  Arial, -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", Meiryo}.mds{background:var(--mds_foundations_body_background-color)
+  Arial, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei"}[lang=zh-hant]{--mds_brand_typography_headline_font-family-fallback: Arial, -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei"
+  Arial, -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei"}[lang=ko]{--mds_brand_typography_headline_font-family-fallback: Arial, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic"
+  Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto}[lang=zh-hans]{--mds_brand_typography_headline_font-family-fallback: Arial, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei"
+  Arial, -apple-system, BlinkMacSystemFont}[lang=ru]{--mds_brand_typography_headline_font-family-fallback: Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto
+  Arial,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Apple SD Gothic Neo,Malgun Gothic,PingFang TC,Microsoft JhengHei,PingFang SC,Microsoft YaHei,Hiragino Kaku Gothic ProN,Meiryo,sans-serif
+  Arial,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Apple SD Gothic Neo,Malgun Gothic,PingFang TC,Microsoft JhengHei,PingFang SC,Microsoft YaHei,Hiragino Kaku Gothic ProN,Meiryo,sans-serif}[lang=en],[lang=es],[lang=fr],[lang=de],[lang=it],[lang=pt],[lang=tr]{--mds_brand_typography_headline_font-family-fallback: Arial, -apple-system, BlinkMacSystemFont
+  Maersk Headline
+  Maersk Text
+  active,.mds a.mds-neutral--weakest__text-color:visited{color:var(--mds_brand_appearance_neutral_weakest_text-color)}.mds a.mds-neutral--weak__text-color,.mds a.mds-neutral--weak__text-color:active,.mds a.mds-neutral--weak__text-color:visited{color:var(--mds_brand_appearance_neutral_weak_text-color)}.mds a.mds-neutral--strong__text-color,.mds a.mds-neutral--strong__text-color:active,.mds a.mds-neutral--strong__text-color:visited{color:var(--mds_brand_appearance_neutral_strong_text-color)}.mds a.mds-neutral--strongest__text-color,.mds a.mds-neutral--strongest__text-color:active,.mds a.mds-neutral--strongest__text-color:visited{color:var(--mds_brand_appearance_neutral_strongest_text-color)}.mds a.mds-neutral--inverse__text-color,.mds a.mds-neutral--inverse__text-color:active,.mds a.mds-neutral--inverse__text-color:visited{color:var(--mds_brand_appearance_neutral_inverse_text-color)}.mds a.mds-neutral--subtle__text-color,.mds a.mds-neutral--subtle__text-color:active,.mds a.mds-neutral--subtle__text-color:visited{color:var(--mds_brand_appearance_neutral_subtle_text-color)}.mds a.mds-neutral--alt__text-color,.mds a.mds-neutral--alt__text-color:active,.mds a.mds-neutral--alt__text-color:visited{color:var(--mds_brand_appearance_neutral_alt_text-color)}.mds .mds-primary__text-color{color:var(--mds_brand_appearance_primary_default_text-color)}.mds .mds-primary--weak__text-color{color:var(--mds_brand_appearance_primary_weak_text-color)}.mds .mds-primary--subtle__text-color{color:var(--mds_brand_appearance_primary_subtle_text-color)}.mds .mds-primary__background-color{background-color:var(--mds_brand_appearance_primary_default_background-color)}.mds .mds-primary--weak__background-color{background-color:var(--mds_brand_appearance_primary_weak_background-color)}.mds .mds-primary--subtle__background-color{background-color:var(--mds_brand_appearance_primary_subtle_background-color)}.mds .mds-primary__on-background-color{color:var(--mds_brand_appearance_primary_default_on-background-color)}.mds .mds-primary--weak__on-background-color{color:var(--mds_brand_appearance_primary_weak_on-background-color)}.mds .mds-primary--subtle__on-background-color{color:var(--mds_brand_appearance_primary_subtle_on-background-color)}.mds .mds-primary__border-color{border-color:var(--mds_brand_appearance_primary_default_border-color)}.mds .mds-primary--weak__border-color{border-color:var(--mds_brand_appearance_primary_weak_border-color)}.mds .mds-primary--subtle__border-color{border-color:var(--mds_brand_appearance_primary_subtle_border-color)}.mds a.mds-primary__text-color,.mds a.mds-primary__text-color:active,.mds a.mds-primary__text-color:visited{color:var(--mds_brand_appearance_primary_default_text-color)}.mds a.mds-primary--weak__text-color,.mds a.mds-primary--weak__text-color:active,.mds a.mds-primary--weak__text-color:visited{color:var(--mds_brand_appearance_primary_weak_text-color)}.mds a.mds-primary--subtle__text-color,.mds a.mds-primary--subtle__text-color:active,.mds a.mds-primary--subtle__text-color:visited{color:var(--mds_brand_appearance_primary_subtle_text-color)}.mds .mds-secondary__text-color{color:var(--mds_brand_appearance_secondary_default_text-color)}.mds .mds-secondary--weak__text-color{color:var(--mds_brand_appearance_secondary_weak_text-color)}.mds .mds-secondary--subtle__text-color{color:var(--mds_brand_appearance_secondary_subtle_text-color)}.mds .mds-secondary__background-color{background-color:var(--mds_brand_appearance_secondary_default_background-color)}.mds .mds-secondary--weak__background-color{background-color:var(--mds_brand_appearance_secondary_weak_background-color)}.mds .mds-secondary--subtle__background-color{background-color:var(--mds_brand_appearance_secondary_subtle_background-color)}.mds .mds-secondary__on-background-color{color:var(--mds_brand_appearance_secondary_default_on-background-color)}.mds .mds-secondary--weak__on-background-color{color:var(--mds_brand_appearance_secondary_weak_on-background-color)}.mds .mds-secondary--subtle__on-background-color{color:var(--mds_brand_appearance_secondary_subtle_on-background-color)}.mds .mds-secondary__border-color{border-color:var(--mds_brand_appearance_secondary_default_border-color)}.mds .mds-secondary--weak__border-color{border-color:var(--mds_brand_appearance_secondary_weak_border-color)}.mds .mds-secondary--subtle__border-color{border-color:var(--mds_brand_appearance_secondary_subtle_border-color)}.mds a.mds-secondary__text-color,.mds a.mds-secondary__text-color:active,.mds a.mds-secondary__text-color:visited{color:var(--mds_brand_appearance_secondary_default_text-color)}.mds a.mds-secondary--weak__text-color,.mds a.mds-secondary--weak__text-color:active,.mds a.mds-secondary--weak__text-color:visited{color:var(--mds_brand_appearance_secondary_weak_text-color)}.mds a.mds-secondary--subtle__text-color,.mds a.mds-secondary--subtle__text-color:active,.mds a.mds-secondary--subtle__text-color:visited{color:var(--mds_brand_appearance_secondary_subtle_text-color)}.mds .mds-info__text-color{color:var(--mds_brand_appearance_info_default_text-color)}.mds .mds-info--weak__text-color{color:var(--mds_brand_appearance_info_weak_text-color)}.mds .mds-info--subtle__text-color{color:var(--mds_brand_appearance_info_subtle_text-color)}.mds .mds-info__background-color{background-color:var(--mds_brand_appearance_info_default_background-color)}.mds .mds-info--weak__background-color{background-color:var(--mds_brand_appearance_info_weak_background-color)}.mds .mds-info--subtle__background-color{background-color:var(--mds_brand_appearance_info_subtle_background-color)}.mds .mds-info__on-background-color{color:var(--mds_brand_appearance_info_default_on-background-color)}.mds .mds-info--weak__on-background-color{color:var(--mds_brand_appearance_info_weak_on-background-color)}.mds .mds-info--subtle__on-background-color{color:var(--mds_brand_appearance_info_subtle_on-background-color)}.mds .mds-info__border-color{border-color:var(--mds_brand_appearance_info_default_border-color)}.mds .mds-info--weak__border-color{border-color:var(--mds_brand_appearance_info_weak_border-color)}.mds .mds-info--subtle__border-color{border-color:var(--mds_brand_appearance_info_subtle_border-color)}.mds a.mds-info__text-color,.mds a.mds-info__text-color:active,.mds a.mds-info__text-color:visited{color:var(--mds_brand_appearance_info_default_text-color)}.mds a.mds-info--weak__text-color,.mds a.mds-info--weak__text-color:active,.mds a.mds-info--weak__text-color:visited{color:var(--mds_brand_appearance_info_weak_text-color)}.mds a.mds-info--subtle__text-color,.mds a.mds-info--subtle__text-color:active,.mds a.mds-info--subtle__text-color:visited{color:var(--mds_brand_appearance_info_subtle_text-color)}.mds .mds-error__text-color{color:var(--mds_brand_appearance_error_default_text-color)}.mds .mds-error--weak__text-color{color:var(--mds_brand_appearance_error_weak_text-color)}.mds .mds-error--subtle__text-color{color:var(--mds_brand_appearance_error_subtle_text-color)}.mds .mds-error__background-color{background-color:var(--mds_brand_appearance_error_default_background-color)}.mds .mds-error--weak__background-color{background-color:var(--mds_brand_appearance_error_weak_background-color)}.mds .mds-error--subtle__background-color{background-color:var(--mds_brand_appearance_error_subtle_background-color)}.mds .mds-error__on-background-color{color:var(--mds_brand_appearance_error_default_on-background-color)}.mds .mds-error--weak__on-background-color{color:var(--mds_brand_appearance_error_weak_on-background-color)}.mds .mds-error--subtle__on-background-color{color:var(--mds_brand_appearance_error_subtle_on-background-color)}.mds .mds-error__border-color{border-color:var(--mds_brand_appearance_error_default_border-color)}.mds .mds-error--weak__border-color{border-color:var(--mds_brand_appearance_error_weak_border-color)}.mds .mds-error--subtle__border-color{border-color:var(--mds_brand_appearance_error_subtle_border-color)}.mds a.mds-error__text-color,.mds a.mds-error__text-color:active,.mds a.mds-error__text-color:visited{color:var(--mds_brand_appearance_error_default_text-color)}.mds a.mds-error--weak__text-color,.mds a.mds-error--weak__text-color:active,.mds a.mds-error--weak__text-color:visited{color:var(--mds_brand_appearance_error_weak_text-color)}.mds a.mds-error--subtle__text-color,.mds a.mds-error--subtle__text-color:active,.mds a.mds-error--subtle__text-color:visited{color:var(--mds_brand_appearance_error_subtle_text-color)}.mds .mds-warning__text-color{color:var(--mds_brand_appearance_warning_default_text-color)}.mds .mds-warning--weak__text-color{color:var(--mds_brand_appearance_warning_weak_text-color)}.mds .mds-warning--subtle__text-color{color:var(--mds_brand_appearance_warning_subtle_text-color)}.mds .mds-warning__background-color{background-color:var(--mds_brand_appearance_warning_default_background-color)}.mds .mds-warning--weak__background-color{background-color:var(--mds_brand_appearance_warning_weak_background-color)}.mds .mds-warning--subtle__background-color{background-color:var(--mds_brand_appearance_warning_subtle_background-color)}.mds .mds-warning__on-background-color{color:var(--mds_brand_appearance_warning_default_on-background-color)}.mds .mds-warning--weak__on-background-color{color:var(--mds_brand_appearance_warning_weak_on-background-color)}.mds .mds-warning--subtle__on-background-color{color:var(--mds_brand_appearance_warning_subtle_on-background-color)}.mds .mds-warning__border-color{border-color:var(--mds_brand_appearance_warning_default_border-color)}.mds .mds-warning--weak__border-color{border-color:var(--mds_brand_appearance_warning_weak_border-color)}.mds .mds-warning--subtle__border-color{border-color:var(--mds_brand_appearance_warning_subtle_border-color)}.mds a.mds-warning__text-color,.mds a.mds-warning__text-color:active,.mds a.mds-warning__text-color:visited{color:var(--mds_brand_appearance_warning_default_text-color)}.mds a.mds-warning--weak__text-color,.mds a.mds-warning--weak__text-color:active,.mds a.mds-warning--weak__text-color:visited{color:var(--mds_brand_appearance_warning_weak_text-color)}.mds a.mds-warning--subtle__text-color,.mds a.mds-warning--subtle__text-color:active,.mds a.mds-warning--subtle__text-color:visited{color:var(--mds_brand_appearance_warning_subtle_text-color)}.mds .mds-success__text-color{color:var(--mds_brand_appearance_success_default_text-color)}.mds .mds-success--weak__text-color{color:var(--mds_brand_appearance_success_weak_text-color)}.mds .mds-success--subtle__text-color{color:var(--mds_brand_appearance_success_subtle_text-color)}.mds .mds-success__background-color{background-color:var(--mds_brand_appearance_success_default_background-color)}.mds .mds-success--weak__background-color{background-color:var(--mds_brand_appearance_success_weak_background-color)}.mds .mds-success--subtle__background-color{background-color:var(--mds_brand_appearance_success_subtle_background-color)}.mds .mds-success__on-background-color{color:var(--mds_brand_appearance_success_default_on-background-color)}.mds .mds-success--weak__on-background-color{color:var(--mds_brand_appearance_success_weak_on-background-color)}.mds .mds-success--subtle__on-background-color{color:var(--mds_brand_appearance_success_subtle_on-background-color)}.mds .mds-success__border-color{border-color:var(--mds_brand_appearance_success_default_border-color)}.mds .mds-success--weak__border-color{border-color:var(--mds_brand_appearance_success_weak_border-color)}.mds .mds-success--subtle__border-color{border-color:var(--mds_brand_appearance_success_subtle_border-color)}.mds a.mds-success__text-color,.mds a.mds-success__text-color:active,.mds a.mds-success__text-color:visited{color:var(--mds_brand_appearance_success_default_text-color)}.mds a.mds-success--weak__text-color,.mds a.mds-success--weak__text-color:active,.mds a.mds-success--weak__text-color:visited{color:var(--mds_brand_appearance_success_weak_text-color)}.mds a.mds-success--subtle__text-color,.mds a.mds-success--subtle__text-color:active,.mds a.mds-success--subtle__text-color:visited{color:var(--mds_brand_appearance_success_subtle_text-color)}.mds .mds-layout{height:100vh
+  after{content:""
+  all
+  box-shadow
+  calc(var(--mds_foundations_table_border-radius) - 1px)
+  ease-in-out
+  focus-visible{outline:0
+  hover,.mds a.mds-link--stand-alone:active{-webkit-text-decoration:var(--mds_foundations_link_stand-alone_hover_text-decoration)
+  hover.mds-link--stand-alone{-webkit-text-decoration:var(--mds_foundations_link_stand-alone_text-decoration)
+  hover{-webkit-text-decoration:var(--mds_foundations_link_inline_text-decoration)
+  hover{background-color:var(--mds_foundations_table_header-cell_sort_hover_background-color)}.mds .mds-table .mds-table__header-cell--sortable:active{background-color:var(--mds_foundations_table_header-cell_sort_active_background-color)}.mds .mds-table .mds-table__header-cell--sortable mc-button{pointer-events:none}.mds .mds-table .mds-table__header-cell--sortable mc-button::part(button){border-radius:0
+  italic
+  last-of-type{border-top:var(--mds_foundations_table_border-width) var(--mds_foundations_table_border-style) var(--mds_foundations_table_border-color)}.mds .mds-table.mds-table--medium .mds-table__expanded-row.mds-table__expanded-row--no-padding td{padding:0}.mds .mds-table.mds-table--medium .mds-table__expanded-row td{padding:var(--mds_foundations_table_medium_expanded-row_padding-top) var(--mds_foundations_table_medium_expanded-row_padding-right) var(--mds_foundations_table_medium_expanded-row_padding-bottom) var(--mds_foundations_table_medium_expanded-row_padding-left)}.mds .mds-table .mds-table__expanded-row__trigger::part(button){margin:0
+  none
+  normal
+  not(.mds-table--disable-row-highlight-on-hover) tbody tr:nth-child(2n) td{background-color:var(--mds_foundations_table_zebra-stripe_background-color)
+  not(.mds-table--disable-row-highlight-on-hover) tbody tr:nth-child(odd) td{background-color:var(--mds_foundations_table_cell_background-color)
+  not(.mds-table--disable-row-highlight-on-hover) tbody>tr:nth-child(4n+1) td,.mds .mds-table.mds-table--zebra-stripes-with-expand:not(.mds-table--disable-row-highlight-on-hover) tbody>tr:nth-child(4n+2) td{background-color:var(--mds_foundations_table_cell_background-color)
+  not(.mds-table--disable-row-highlight-on-hover) tbody>tr:nth-child(4n+3) td,.mds .mds-table.mds-table--zebra-stripes-with-expand:not(.mds-table--disable-row-highlight-on-hover) tbody>tr:nth-child(4n+4) td{background-color:var(--mds_foundations_table_zebra-stripe_background-color)
+  nth-child(-n+2){padding-bottom:16px
+  outside circle
+  outside decimal
+  rgb(0, 119, 178)
+  rgb(0,36,61)
+  rgb(0,62,98)
+  rgb(0,89,134)
+  rgb(106,106,106)
+  rgb(120,200,226)
+  rgb(128,104,20)
+  rgb(129, 0, 13)
+  rgb(138,138,138)
+  rgb(158,215,234)
+  rgb(161,209,232)
+  rgb(166, 0, 16)
+  rgb(179, 146, 29)
+  rgb(179,179,179)
+  rgb(184,0,18)
+  rgb(19,51,16)
+  rgb(197,229,194)
+  rgb(20, 20, 20)
+  rgb(20,20,20)
+  rgb(209,236,245)
+  rgb(212,212,212)
+  rgb(220,246,217)
+  rgb(226,226,226)
+  rgb(226,243,249)
+  rgb(226,243,251)
+  rgb(230, 187, 37)
+  rgb(233,178,183)
+  rgb(240,240,240)
+  rgb(247,247,247)
+  rgb(252,221,224)
+  rgb(255,208,41)
+  rgb(255,235,168)
+  rgb(255,241,194)
+  rgb(255,255,255)
+  rgb(50, 133, 41)
+  rgb(50,133,41)
+  rgb(54,54,54)
+  rgb(55,0,5)
+  rgb(58, 154, 48)
+  rgb(64,171,53)
+  rgb(66,176,213)
+  rgb(76,76,76)
+  rgb(77,62,12)
+  rgb(96,189,220)
+  rgba(0, 0, 0, .03)
+  rgba(0, 0, 0, .04)
+  rgba(184, 0, 18, .06)
+  rgba(184, 0, 18, .1)
+  rgba(20, 20, 20, .1)
+  rgba(20, 20, 20, .3)
+  rgba(20, 20, 20, .5)
+  rgba(20, 20, 20, .7)
+  rgba(20, 20, 20, .9)
+  rgba(20,20,20,.06)
+  rgba(20,20,20,.12)
+  rgba(20,20,20,.18)
+  rgba(255, 255, 255, .1)
+  rgba(255, 255, 255, .3)
+  rgba(255, 255, 255, .5)
+  rgba(255, 255, 255, .7)
+  rgba(255, 255, 255, .9)
+  rgba(255,255,255,.12)
+  rgba(255,255,255,.2)
+  rgba(66,176,213,.12)
+  rgba(66,176,213,.24)
+  solid
+  transparent
+  underline
+  url("data:image/svg+xml,<svg width='121' height='26' viewBox='0 0 121 26' fill='none' xmlns='http://www.w3.org/2000/svg'><path fill-rule='evenodd' clip-rule='evenodd' d='M107.844 18.7029V6.92578H110.649V11.6357L115.993 6.92578H119.791L113.417 12.3962L120.02 18.7029H116.088L110.649 13.3465V18.7029H107.844Z' fill='black' /><path fill-rule='evenodd' clip-rule='evenodd' d='M96.639 18.702H95.7023C94.4794 18.702 93.8906 17.9985 93.8906 16.9741V15.4361H96.639V16.3475H102.479V13.9369H95.7804C94.7111 13.9369 93.9406 13.2208 93.9406 12.228V8.73146C93.9406 7.67355 94.7792 6.92578 95.7986 6.92578H103.457C104.492 6.92578 105.208 7.69435 105.208 8.80651V10.2116H102.479V9.2803H96.639V11.6005H103.319C104.305 11.6005 105.208 12.2497 105.208 13.4993V16.8602C105.208 18.0058 104.57 18.702 103.376 18.702H96.639Z' fill='black' /><path fill-rule='evenodd' clip-rule='evenodd' d='M82.98 12.3214H88.9156V9.26885H82.98V12.3214ZM80.2109 18.6921V6.91406H89.6655C90.9284 6.91406 91.6625 7.64194 91.6625 8.88973V12.8456C91.6625 13.757 90.853 14.5789 89.2821 14.5789C89.193 14.5843 89.1031 14.5789 89.0095 14.5789L91.7615 18.6921H88.7242L86.1148 14.6648H82.9793V18.6921H80.2109Z' fill='black' /><path fill-rule='evenodd' clip-rule='evenodd' d='M66.6953 18.6912V6.91406H77.9933V9.26858H69.4237V11.6077H76.7713V13.9062H69.4237V16.3358H78.0142V18.6912H66.6953Z' fill='black' /><path fill-rule='evenodd' clip-rule='evenodd' d='M60.4729 14.1301L58.3006 9.13803L56.1782 14.1301H60.4729ZM54.2334 18.6912H51.1797L56.4294 6.91406H60.1881L65.4751 18.6912H62.4604L61.4201 16.3448H55.2419L54.2334 18.6912Z' fill='black' /><path fill-rule='evenodd' clip-rule='evenodd' d='M35.9375 18.6912V6.91406H39.0857L43.0761 15.7146L47.0075 6.91406H50.0239V18.6912H47.4272V11.8401L44.4308 18.6912H41.6633L38.6287 11.8772V18.6912H35.9375Z' fill='black' /><path fill-rule='evenodd' clip-rule='evenodd' d='M24.0975 22.8161C24.0975 24.4177 22.7995 25.7156 21.1988 25.7156H2.89951C1.29794 25.7156 0 24.4177 0 22.8161V3.1855C0 1.58395 1.29794 0.285156 2.89951 0.285156H21.1988C22.7995 0.285156 24.0975 1.58395 24.0975 3.1855V22.8161Z' fill='%2342B0D5' /><path fill-rule='evenodd' clip-rule='evenodd' d='M15.8302 12.6624L20.51 6.68381L20.4956 6.66484L13.7327 9.98225L12.0619 2.52734H12.0382L10.3682 9.98225L3.60525 6.66484L3.59002 6.68381L8.27074 12.6624L1.50781 15.9807L1.51289 16.004H9.01898L7.34899 23.4597L7.37015 23.4701L12.05 17.4915L16.7299 23.4701L16.7511 23.4589L15.0819 16.004H22.588L22.5931 15.9807L15.8302 12.6624Z' fill='white' /></svg>")
+  url("data:image/svg+xml,<svg width='25' height='26' viewBox='0 0 25 26' fill='none' xmlns='http://www.w3.org/2000/svg'><path fill-rule='evenodd' clip-rule='evenodd' d='M24.6371 23.0356C24.6371 24.673 23.3101 26 21.6736 26H2.96444C1.32701 26 0 24.673 0 23.0356V2.9653C0 1.32788 1.32701 0 2.96444 0H21.6736C23.3101 0 24.6371 1.32788 24.6371 2.9653V23.0356Z' fill='%2342B0D5'/><path fill-rule='evenodd' clip-rule='evenodd' d='M16.1836 12.656L20.9683 6.5435L20.9536 6.5241L14.0392 9.91581L12.331 2.29395H12.3067L10.5993 9.91581L3.68494 6.5241L3.66936 6.5435L8.45492 12.656L1.54053 16.0486L1.54572 16.0724H9.21992L7.51252 23.6951L7.53415 23.7057L12.3188 17.5932L17.1035 23.7057L17.1252 23.6942L15.4186 16.0724H23.0928L23.098 16.0486L16.1836 12.656Z' fill='white'/></svg>")
+  var(--mds_brand_appearance_neutral_default_background-color)
+  var(--mds_brand_appearance_neutral_default_border-color)
+  var(--mds_brand_appearance_neutral_default_on-background-color)
+  var(--mds_brand_appearance_neutral_default_text-color)
+  var(--mds_brand_appearance_neutral_weak_text-color)
+  var(--mds_brand_appearance_neutral_weakest_background-color)
+  var(--mds_brand_appearance_neutral_weakest_on-background-color)
+  var(--mds_brand_appearance_neutral_weakest_text-color)
+  var(--mds_brand_appearance_opacity_default_50)
+  var(--mds_brand_appearance_primary_default_link-color)
+  var(--mds_brand_appearance_primary_weak_background-color)
+  var(--mds_brand_appearance_primary_weak_on-background-color)
+  var(--mds_brand_appearance_state_neutral_default_active_background-color)
+  var(--mds_brand_appearance_state_neutral_default_hover_background-color)
+  var(--mds_brand_border_large_radius)
+  var(--mds_brand_border_medium_radius)
+  var(--mds_brand_typography_text_medium_bold_font-weight)
+  var(--mds_brand_typography_text_medium_normal_font-weight)
+  var(--mds_global_border_style)
+  var(--mds_global_border_width)
+  var(--mds_global_link_inline_hover_text-decoration)
+  var(--mds_global_link_inline_text-decoration)
+  var(--mds_global_link_stand-alone_hover_text-decoration)
+  var(--mds_global_link_stand-alone_text-decoration)
+  var(--mds_global_transition_fast_duration)
+  var(--mds_global_transition_fast_timing)
+  visited{-webkit-text-decoration:var(--mds_foundations_link_stand-alone_text-decoration)

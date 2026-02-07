@@ -1,0 +1,6 @@
+<svg/,`<svg aria-label="${this.iconTitle}"`):t}getEmptyIcon(t){return Bd(`<svg
+    width="${t}"
+    height="${t}"
+    viewBox="0 0 ${t} ${t}"
+    xmlns="http://www.w3.org/2000/svg"
+  ></svg>

@@ -1,0 +1,5 @@
+{
+  "name": "Maersk Remote Work Portal",
+  "description": "Employee portal for requesting international remote work, featuring a Gemini-powered compliance assistant.",
+  "requestFramePermissions": []
+}

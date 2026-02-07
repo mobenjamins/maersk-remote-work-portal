@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+ENV/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+
+# Node/Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Cache
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+__pycache__/
+*.pyc
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+
+# Build artifacts
+*.egg
+*.whl
+
+# Temporary files
+tmp/
+temp/
+*.tmp
