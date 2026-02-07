@@ -46,6 +46,10 @@ class User(AbstractUser):
         default=False,
         help_text="Whether the employee has contract signing authority (PE risk)",
     )
+    is_admin = models.BooleanField(
+        default=False,
+        help_text="Whether the user has access to the admin portal",
+    )
     days_allowed = models.PositiveIntegerField(
         default=20, help_text="Annual remote work days allowed"
     )

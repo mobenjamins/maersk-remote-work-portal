@@ -1,12 +1,50 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Download, X, AlertCircle, CheckCircle, Clock, XCircle, MoreVertical, BrainCircuit } from 'lucide-react';
+import { Search, Download, X, AlertCircle, CheckCircle, Clock, XCircle, MoreVertical, BrainCircuit, User } from 'lucide-react';
 import { mockRequests, type Request } from '../data/mockData';
+
+const EmployeeHoverCard = ({ employeeName, role, homeCountry }: { employeeName: string, role: string, homeCountry: string }) => (
+  <motion.div 
+    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+    className="absolute z-50 left-0 top-full mt-2 w-64 bg-white rounded-sm shadow-xl border border-gray-200 p-4 pointer-events-none"
+  >
+    <div className="flex items-center gap-3 mb-3">
+      <div className="w-10 h-10 rounded-full bg-maersk-blue text-white flex items-center justify-center font-bold text-sm">
+        {employeeName.split(' ').map(n => n[0]).join('')}
+      </div>
+      <div>
+        <h4 className="text-sm font-bold text-gray-900">{employeeName}</h4>
+        <p className="text-xs text-gray-500">{role}</p>
+      </div>
+    </div>
+    <div className="space-y-2">
+      <div className="flex justify-between text-xs">
+        <span className="text-gray-400">Department</span>
+        <span className="font-medium text-gray-700">Engineering</span>
+      </div>
+      <div className="flex justify-between text-xs">
+        <span className="text-gray-400">Tenure</span>
+        <span className="font-medium text-gray-700">4 Years</span>
+      </div>
+      <div className="flex justify-between text-xs">
+        <span className="text-gray-400">Home Base</span>
+        <span className="font-medium text-gray-700">{homeCountry}</span>
+      </div>
+      <div className="pt-2 mt-2 border-t border-gray-100 flex justify-between text-xs">
+        <span className="text-gray-400">Prev. Requests</span>
+        <span className="font-bold text-maersk-blue">2 Approved</span>
+      </div>
+    </div>
+  </motion.div>
+);
 
 const RequestManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'escalated'>('all');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [hoveredEmployeeId, setHoveredEmployeeId] = useState<string | null>(null);
 
   const filteredRequests = mockRequests.filter(req => {
     const matchesSearch = 
@@ -85,10 +123,10 @@ const RequestManager = () => {
 
       {/* Table Area */}
       <div className="flex-1 bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden flex flex-col">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto h-full">
           <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
+            <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
+              <tr className="border-b border-gray-200">
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Reference</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Employee</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Route</th>
@@ -99,53 +137,76 @@ const RequestManager = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredRequests.map((req) => (
-                <tr 
-                  key={req.id}
-                  className="hover:bg-gray-50/50 transition-colors group cursor-pointer"
-                  onClick={() => setSelectedRequest(req)}
-                >
-                  <td className="px-6 py-4 text-xs font-bold text-maersk-blue uppercase tracking-tighter">{req.reference}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-gray-900">{req.employeeName}</span>
-                      <span className="text-[11px] text-gray-500">{req.role}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-xs">
-                    <div className="flex items-center gap-2 font-medium">
-                      <span className="text-gray-900">{req.homeCountry}</span>
-                      <span className="text-gray-300">→</span>
-                      <span className="text-gray-900">{req.destinationCountry}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-[11px] text-gray-600">
-                      <div>{req.startDate}</div>
-                      <div className="text-gray-400">to {req.endDate}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-sm ${
-                      req.sentiment > 50 ? 'text-emerald-600 bg-emerald-50' : 
-                      req.sentiment < 0 ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'
-                    }`}>
-                      {req.sentiment > 0 ? '+' : ''}{req.sentiment}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider border ${getStatusStyle(req.status)}`}>
-                      {getStatusIcon(req.status)}
-                      {req.status}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="p-1 hover:bg-gray-200 rounded-sm transition-colors text-gray-400 group-hover:text-gray-700">
-                      <MoreVertical size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              <AnimatePresence mode='popLayout'>
+                {filteredRequests.map((req, index) => (
+                  <motion.tr 
+                    key={req.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ delay: index * 0.05, duration: 0.2 }}
+                    className="hover:bg-gray-50/50 transition-colors group cursor-pointer relative"
+                    onClick={() => setSelectedRequest(req)}
+                  >
+                    <td className="px-6 py-4 text-xs font-bold text-maersk-blue font-mono">{req.reference}</td>
+                    <td className="px-6 py-4 relative">
+                      <div 
+                        className="flex flex-col w-fit"
+                        onMouseEnter={() => setHoveredEmployeeId(req.id)}
+                        onMouseLeave={() => setHoveredEmployeeId(null)}
+                      >
+                        <span className="text-sm font-semibold text-gray-900 group-hover:text-maersk-blue transition-colors flex items-center gap-1">
+                           {req.employeeName}
+                        </span>
+                        <span className="text-[11px] text-gray-500">{req.role}</span>
+                        
+                        {/* Hover Card */}
+                        <AnimatePresence>
+                          {hoveredEmployeeId === req.id && (
+                            <EmployeeHoverCard 
+                              employeeName={req.employeeName} 
+                              role={req.role} 
+                              homeCountry={req.homeCountry} 
+                            />
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs">
+                      <div className="flex items-center gap-2 font-medium">
+                        <span className="text-gray-900">{req.homeCountry}</span>
+                        <span className="text-gray-300">→</span>
+                        <span className="text-gray-900">{req.destinationCountry}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-[11px] text-gray-600">
+                        <div>{req.startDate}</div>
+                        <div className="text-gray-400">to {req.endDate}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-sm ${
+                        req.sentiment > 50 ? 'text-emerald-600 bg-emerald-50' : 
+                        req.sentiment < 0 ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'
+                      }`}>
+                        {req.sentiment > 0 ? '+' : ''}{req.sentiment}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider border ${getStatusStyle(req.status)}`}>
+                        {getStatusIcon(req.status)}
+                        {req.status}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="p-1 hover:bg-gray-200 rounded-sm transition-colors text-gray-400 group-hover:text-gray-700">
+                        <MoreVertical size={16} />
+                      </button>
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
             </tbody>
           </table>
         </div>

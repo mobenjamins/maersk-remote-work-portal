@@ -5,11 +5,16 @@ import { Login } from './components/Login';
 import { ChatInterface } from './components/ChatInterface'; // Now the Smart Wizard
 import { Questionnaire } from './components/Questionnaire';
 import { HRDashboard } from './components/HRDashboard';
+import { PolicyChatbot } from './components/PolicyChatbot';
 import { ViewState } from './types';
 
 const App: React.FC = () => {
   const [viewState, setViewState] = useState<ViewState>(ViewState.LOGIN);
   const [userEmail, setUserEmail] = useState('');
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  
+  // Shared state to allow Chatbot to be context-aware
+  const [currentFormData, setCurrentFormData] = useState<any>({});
 
   const handleLogin = (email: string) => {
     setUserEmail(email);
@@ -87,7 +92,7 @@ const App: React.FC = () => {
         return (
           <>
             <Header />
-            <div className="max-w-[1200px] mx-auto px-8 py-10">
+            <div className="max-w-[1200px] mx-auto px-8 py-10 relative">
                 <div className="flex items-center justify-between mb-8">
                     <button 
                         onClick={() => setViewState(ViewState.SELECTION)}
@@ -100,50 +105,70 @@ const App: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                     <div className="lg:col-span-8">
                         {/* We use the updated ChatInterface which is now the Smart Wizard */}
-                        {viewState === ViewState.CHAT ? <ChatInterface userEmail={userEmail} /> : <Questionnaire />}
+                        {viewState === ViewState.CHAT ? (
+                             <ChatInterface 
+                                userEmail={userEmail} 
+                                onDataChange={setCurrentFormData} 
+                             />
+                        ) : (
+                             <Questionnaire 
+                                onDataChange={setCurrentFormData}
+                             />
+                        )}
                     </div>
                     
                     <div className="lg:col-span-4">
-                        <div className="bg-white p-8 rounded-sm shadow-sm border border-gray-200 sticky top-24">
-                            <h3 className="font-semibold text-gray-900 mb-6 border-b border-gray-100 pb-4">Policy Guidelines</h3>
-                            <ul className="text-sm text-gray-600 space-y-4">
-                                <li className="flex gap-3">
-                                    <span className="text-[#42b0d5] font-bold">1.</span>
-                                    <span><strong>Manager Approval</strong> is required before initiating request.</span>
-                                </li>
-                                <li className="flex gap-3">
-                                    <span className="text-[#42b0d5] font-bold">2.</span>
-                                    <span>Maximum duration: <strong>20 days</strong> per calendar year.</span>
-                                </li>
-                                <li className="flex gap-3">
-                                    <span className="text-[#42b0d5] font-bold">3.</span>
-                                    <span>You must hold valid <strong>citizenship</strong> or <strong>work rights</strong> for the destination.</span>
-                                </li>
-                                <li className="flex gap-3">
-                                    <span className="text-[#42b0d5] font-bold">4.</span>
-                                    <span>Sales/Contract roles are often restricted due to <strong>Permanent Establishment</strong> risk.</span>
-                                </li>
-                            </ul>
+                        {/* 3D FLIP CARD CONTAINER */}
+                        <div className="sticky top-24 h-[600px] w-full [perspective:1000px]">
                             
-                            <div className="mt-8 pt-6 border-t border-gray-100">
-                                <div className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-3">Request Mode</div>
-                                {viewState === ViewState.CHAT ? (
-                                    <button 
-                                        onClick={() => setViewState(ViewState.FORM)}
-                                        className="w-full py-3 px-4 border border-gray-300 rounded-sm text-sm font-medium text-gray-700 hover:border-[#42b0d5] hover:text-[#42b0d5] transition-all flex items-center justify-center space-x-2 bg-gray-50 hover:bg-white"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                        <span>Switch to Standard Form</span>
-                                    </button>
-                                ) : (
-                                    <button 
-                                        onClick={() => setViewState(ViewState.CHAT)}
-                                        className="w-full py-3 px-4 border border-gray-300 rounded-sm text-sm font-medium text-gray-700 hover:border-[#42b0d5] hover:text-[#42b0d5] transition-all flex items-center justify-center space-x-2 bg-gray-50 hover:bg-white"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                        <span>Switch to Smart Wizard</span>
-                                    </button>
-                                )}
+                            {/* The Flipper */}
+                            <div className={`relative w-full h-full transition-all duration-700 [transform-style:preserve-3d] shadow-sm rounded-sm border border-gray-200 bg-white ${isChatbotOpen ? '[transform:rotateY(180deg)]' : ''}`}>
+                                
+                                {/* --- FRONT FACE: GUIDELINES --- */}
+                                <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] p-8 bg-white rounded-sm flex flex-col">
+                                    <h3 className="font-semibold text-gray-900 mb-6 border-b border-gray-100 pb-4">Policy Guidelines</h3>
+                                    <ul className="text-sm text-gray-600 space-y-4 flex-1">
+                                        <li className="flex gap-3">
+                                            <span className="text-[#42b0d5] font-bold">1.</span>
+                                            <span><strong>Manager Approval</strong> is required before initiating request.</span>
+                                        </li>
+                                        <li className="flex gap-3">
+                                            <span className="text-[#42b0d5] font-bold">2.</span>
+                                            <span>Maximum duration: <strong>20 days</strong> per calendar year.</span>
+                                        </li>
+                                        <li className="flex gap-3">
+                                            <span className="text-[#42b0d5] font-bold">3.</span>
+                                            <span>You must hold valid <strong>citizenship</strong> or <strong>work rights</strong> for the destination.</span>
+                                        </li>
+                                        <li className="flex gap-3">
+                                            <span className="text-[#42b0d5] font-bold">4.</span>
+                                            <span>Sales/Contract roles are often restricted due to <strong>Permanent Establishment</strong> risk.</span>
+                                        </li>
+                                    </ul>
+                                    
+                                    <div className="mt-8 pt-6 border-t border-gray-100">
+                                        <div className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-3">Policy Support</div>
+                                        
+                                        <button 
+                                            onClick={() => setIsChatbotOpen(true)}
+                                            className="w-full py-3 px-4 border border-[#42b0d5] text-[#42b0d5] hover:bg-blue-50 rounded-sm text-sm font-medium transition-all flex items-center justify-center space-x-2"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                                            <span>Ask Policy Assistant</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* --- BACK FACE: CHATBOT --- */}
+                                <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-white rounded-sm overflow-hidden">
+                                    <PolicyChatbot 
+                                        isOpen={true} // Always "open" visually, visibility controlled by flip
+                                        onClose={() => setIsChatbotOpen(false)} 
+                                        context={viewState === ViewState.CHAT ? "Smart Wizard" : "Standard Form"} 
+                                        formData={currentFormData}
+                                    />
+                                </div>
+
                             </div>
                         </div>
                     </div>

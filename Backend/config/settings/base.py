@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "apps.requests",
     "apps.compliance",
     "apps.ai",
+    "apps.admin",
 ]
 
 MIDDLEWARE = [

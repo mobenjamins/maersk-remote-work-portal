@@ -4,6 +4,7 @@ import { User } from '../services/api';
 interface HeaderProps {
   user?: User | null;
   onLogout?: () => void;
+  currentPageTitle?: string; // Kept for compatibility but ignored in UI
 }
 
 export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {

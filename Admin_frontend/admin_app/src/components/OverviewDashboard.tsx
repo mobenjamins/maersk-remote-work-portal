@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { ComposableMap, Geographies, Geography, Marker, Line } from 'react-simple-maps';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Users, Globe, CheckCircle, TrendingUp, ArrowRight, X, Map as MapIcon, Home, Plane } from 'lucide-react';
-import { mockRequests, type Request } from '../data/mockData';
+import { mockRequests } from '../data/mockData';
 import { scaleLinear } from 'd3-scale';
 import { Tooltip as ReactTooltip } from 'react-tooltip';
 
@@ -19,11 +19,22 @@ const chartData = [
   { name: 'Jul', requests: 24 },
 ];
 
+// Animated Counter Component
+const AnimatedCounter = ({ value, duration = 2 }: { value: number, duration?: number }) => {
+  const spring = useSpring(0, { duration: duration * 1000, bounce: 0 });
+  const display = useTransform(spring, (current) => Math.round(current));
+
+  useEffect(() => {
+    spring.set(value);
+  }, [value, spring]);
+
+  return <motion.span>{display}</motion.span>;
+};
+
 const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void }) => {
   const [mapMode, setMapMode] = useState<'home' | 'destination'>('destination');
   const [filterType, setFilterType] = useState<'all' | 'country' | 'kpi' | 'trend'>('all');
   const [filterValue, setFilterValue] = useState<string | null>(null);
-  const [content, setContent] = useState("");
 
   // Calculate country heat map data
   const heatMapData = useMemo(() => {
@@ -35,10 +46,10 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
     return counts;
   }, [mapMode]);
 
-  // Darker, more vivid color scale for the heat map
+  // Reverted to the lighter, preferred color scale
   const colorScale = scaleLinear<string>()
-    .domain([0, 1, 5])
-    .range(["#F1F5F9", "#42B0D5", "#00243D"]); // From light gray to Maersk Blue to Deep Maersk Dark
+    .domain([0, 5])
+    .range(["#E2E8F0", "#42B0D5"]);
 
   // Filtered list based on drill-down
   const drilledRequests = useMemo(() => {
@@ -66,25 +77,61 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
         </div>
       </div>
 
-      {/* KPI Grid */}
+      {/* KPI Grid - Staggered Animation */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div onClick={() => { setFilterType('kpi'); setFilterValue('total'); }}>
-          <KPICard title="Total Requests" value={totalRequests} change="+12%" icon={Users} color="blue" active={filterValue === 'total'} />
+          <KPICard 
+            title="Total Requests" 
+            value={<AnimatedCounter value={totalRequests} />} 
+            change="+12%" 
+            icon={Users} 
+            color="blue" 
+            active={filterValue === 'total'} 
+            delay={0}
+          />
         </div>
         <div onClick={() => { setFilterType('kpi'); setFilterValue('active'); }}>
-          <KPICard title="Active Corridors" value={uniqueCountries} change="Live" icon={Globe} color="cyan" active={filterValue === 'active'} />
+          <KPICard 
+            title="Active Corridors" 
+            value={<AnimatedCounter value={uniqueCountries} />} 
+            change="Live" 
+            icon={Globe} 
+            color="cyan" 
+            active={filterValue === 'active'} 
+            delay={0.1}
+          />
         </div>
         <div onClick={() => { setFilterType('kpi'); setFilterValue('approved'); }}>
-          <KPICard title="Approved" value={approvedCount} change="High" icon={CheckCircle} color="emerald" active={filterValue === 'approved'} />
+          <KPICard 
+            title="Approved" 
+            value={<AnimatedCounter value={approvedCount} />} 
+            change="High" 
+            icon={CheckCircle} 
+            color="emerald" 
+            active={filterValue === 'approved'} 
+            delay={0.2}
+          />
         </div>
         <div onClick={() => setActiveTab('intelligence')} className="cursor-pointer">
-          <KPICard title="Avg. Sentiment" value="+42" change="View Analytics" icon={TrendingUp} color="amber" />
+          <KPICard 
+            title="Avg. Sentiment" 
+            value={<span>+<AnimatedCounter value={42} /></span>} 
+            change="View Analytics" 
+            icon={TrendingUp} 
+            color="amber" 
+            delay={0.3}
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Heat Map Visualization */}
-        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-sm p-6 shadow-sm flex flex-col">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="lg:col-span-2 bg-white border border-gray-200 rounded-sm p-6 shadow-sm flex flex-col"
+        >
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest flex items-center gap-2">
               <MapIcon size={14} className="text-maersk-blue" />
@@ -129,7 +176,7 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
                           }
                         }}
                         style={{
-                          default: { outline: "none" },
+                          default: { outline: "none", transition: "fill 0.3s ease" },
                           hover: { fill: "#42B0D5", outline: "none", cursor: count > 0 ? 'pointer' : 'default' },
                           pressed: { outline: "none" },
                         }}
@@ -151,10 +198,13 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
                </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Trend Chart */}
-        <div 
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
           className="bg-white border border-gray-200 rounded-sm p-6 shadow-sm flex flex-col cursor-pointer hover:border-maersk-blue/30 transition-colors"
           onClick={() => { setFilterType('trend'); setFilterValue('july'); }}
         >
@@ -173,11 +223,19 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip />
-                <Area type="monotone" dataKey="requests" stroke="#42B0D5" strokeWidth={2} fillOpacity={1} fill="url(#colorRequests)" />
+                <Area 
+                  type="monotone" 
+                  dataKey="requests" 
+                  stroke="#42B0D5" 
+                  strokeWidth={2} 
+                  fillOpacity={1} 
+                  fill="url(#colorRequests)"
+                  animationDuration={2000} 
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Drill-down Table Overlay */}
@@ -221,8 +279,14 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {drilledRequests.map((req) => (
-                    <tr key={req.id} className="hover:bg-gray-50/50 transition-colors group">
+                  {drilledRequests.map((req, i) => (
+                    <motion.tr 
+                      key={req.id} 
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="hover:bg-gray-50/50 transition-colors group"
+                    >
                       <td className="px-4 py-3 text-xs font-bold text-maersk-blue font-mono">{req.reference}</td>
                       <td className="px-4 py-3">
                         <div className="text-sm font-semibold text-gray-900">{req.employeeName}</div>
@@ -243,7 +307,7 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
                           Detail <ArrowRight size={12} />
                         </button>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
@@ -255,7 +319,7 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
   );
 };
 
-const KPICard = ({ title, value, change, icon: Icon, color, active }: any) => {
+const KPICard = ({ title, value, change, icon: Icon, color, active, delay = 0 }: any) => {
   const colorMap: any = {
     blue: 'text-blue-600 bg-blue-50',
     cyan: 'text-maersk-blue bg-maersk-light',
@@ -264,9 +328,14 @@ const KPICard = ({ title, value, change, icon: Icon, color, active }: any) => {
   };
 
   return (
-    <div className={`bg-white border p-6 rounded-sm shadow-sm hover:shadow-md transition-all cursor-pointer group ${
-      active ? 'border-maersk-blue ring-1 ring-maersk-blue/10 scale-[1.02]' : 'border-gray-200'
-    }`}>
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay }}
+      className={`bg-white border p-6 rounded-sm shadow-sm hover:shadow-md transition-all cursor-pointer group ${
+        active ? 'border-maersk-blue ring-1 ring-maersk-blue/10 scale-[1.02]' : 'border-gray-200'
+      }`}
+    >
       <div className="flex justify-between items-start mb-4">
         <div className={`p-2 rounded-sm group-hover:scale-110 transition-transform ${colorMap[color] || colorMap.blue}`}>
           <Icon size={20} />
@@ -281,7 +350,7 @@ const KPICard = ({ title, value, change, icon: Icon, color, active }: any) => {
         <h4 className="text-2xl font-semibold text-gray-900 tracking-tight">{value}</h4>
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{title}</p>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

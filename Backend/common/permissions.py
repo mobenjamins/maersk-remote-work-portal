@@ -46,3 +46,31 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         return request.user and request.user.is_staff
+
+
+class IsAdminUser(permissions.BasePermission):
+    """
+    Permission that only allows admin portal users (is_admin=True).
+    """
+
+    def has_permission(self, request, view):
+        return (
+            request.user
+            and request.user.is_authenticated
+            and getattr(request.user, "is_admin", False)
+        )
+
+
+class IsAdminOrOwner(permissions.BasePermission):
+    """
+    Permission that allows admins full access and users access to their own data.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        # Admins have full access
+        if request.user and getattr(request.user, "is_admin", False):
+            return True
+        # Users can access their own data
+        if hasattr(obj, "user"):
+            return obj.user == request.user
+        return False

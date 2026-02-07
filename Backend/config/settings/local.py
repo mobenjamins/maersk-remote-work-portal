@@ -12,9 +12,18 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
 
-# CORS settings for local development - allow all localhost ports
+# CORS settings for local development - allow both employee and admin frontends
 CORS_ALLOW_ALL_ORIGINS = True  # For development only
 CORS_ALLOW_CREDENTIALS = True
+# Explicit allowed origins for clarity:
+# - localhost:3000 (Employee frontend)
+# - localhost:3001 (Admin frontend)
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://localhost:3001",
+#     "http://127.0.0.1:3000",
+#     "http://127.0.0.1:3001",
+# ]
 
 # Database - SQLite for quick local development (switch to PostgreSQL for production)
 DATABASES = {

@@ -1,35 +1,53 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState, useEffect } from 'react';
+import { initAuth, getCurrentUser, isAuthenticated, logout } from './services/api';
+import { User } from './types';
+import Login from './components/Login';
+import Dashboard from './components/Dashboard';
+import Header from './components/Header';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Initialize auth from localStorage
+    const savedUser = initAuth();
+    if (savedUser && isAuthenticated()) {
+      setUser(savedUser);
+    }
+    setLoading(false);
+  }, []);
+
+  const handleLogin = (loginUser: User) => {
+    setUser(loginUser);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setUser(null);
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login onLoginSuccess={handleLogin} />;
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="app">
+      <Header user={user} onLogout={handleLogout} />
+      <main className="app-main">
+        <Dashboard />
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;

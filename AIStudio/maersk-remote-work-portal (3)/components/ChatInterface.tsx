@@ -3,9 +3,10 @@ import { extractApprovalData } from '../services/geminiService';
 
 interface RequestWizardProps {
   userEmail: string;
+  onDataChange?: (data: any) => void;
 }
 
-export const ChatInterface: React.FC<RequestWizardProps> = ({ userEmail }) => {
+export const ChatInterface: React.FC<RequestWizardProps> = ({ userEmail, onDataChange }) => {
   const [step, setStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<'idle' | 'approved' | 'rejected'>('idle');
@@ -29,14 +30,30 @@ export const ChatInterface: React.FC<RequestWizardProps> = ({ userEmail }) => {
   useEffect(() => {
     if (userEmail) {
       const parts = userEmail.split('@')[0].split('.');
-      setFormData(prev => ({
-        ...prev,
+      const newData = {
+        ...formData,
         firstName: parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1) : '',
         lastName: parts[1] ? parts[1].charAt(0).toUpperCase() + parts[1].slice(1) : '',
         homeCountry: 'Denmark' // Default/Mock for demo
-      }));
+      };
+      setFormData(newData);
     }
   }, [userEmail]);
+
+  // Propagate data changes to parent
+  useEffect(() => {
+    if (onDataChange) {
+        onDataChange(formData);
+    }
+  }, [formData, onDataChange]);
+
+  // Calculate Max Date based on Policy (20 Days)
+  const getMaxEndDate = () => {
+    if (!formData.startDate) return undefined;
+    const date = new Date(formData.startDate);
+    date.setDate(date.getDate() + 20); // Policy limit
+    return date.toISOString().split('T')[0];
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -118,6 +135,13 @@ export const ChatInterface: React.FC<RequestWizardProps> = ({ userEmail }) => {
         </div>
       );
   }
+
+  const maxDate = getMaxEndDate();
+
+  const formatDateForDisplay = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  };
 
   return (
     <div className="bg-white rounded-sm shadow-md border border-gray-200 min-h-[600px] flex flex-col">
@@ -218,11 +242,30 @@ export const ChatInterface: React.FC<RequestWizardProps> = ({ userEmail }) => {
                 <div className="grid grid-cols-2 gap-6">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Start Date</label>
-                        <input type="date" className="w-full bg-white border border-gray-300 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none" onChange={(e) => handleChange('startDate', e.target.value)} />
+                        <input 
+                            type="date" 
+                            className="w-full bg-white border border-gray-300 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none" 
+                            onChange={(e) => handleChange('startDate', e.target.value)} 
+                            value={formData.startDate}
+                        />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">End Date</label>
-                        <input type="date" className="w-full bg-white border border-gray-300 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none" onChange={(e) => handleChange('endDate', e.target.value)} />
+                        <div className="flex justify-between">
+                            <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">End Date</label>
+                            {maxDate && <span className="text-xs text-[#42b0d5] font-medium">Policy limit: {formatDateForDisplay(maxDate)}</span>}
+                        </div>
+                        <input 
+                            type="date" 
+                            disabled={!formData.startDate}
+                            min={formData.startDate}
+                            max={maxDate}
+                            className="w-full bg-white border border-gray-300 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none disabled:bg-gray-100 disabled:text-gray-400 cursor-pointer disabled:cursor-not-allowed" 
+                            onChange={(e) => handleChange('endDate', e.target.value)}
+                            value={formData.endDate}
+                        />
+                        {!formData.startDate && (
+                            <p className="text-[10px] text-gray-400 mt-1">Please select a start date first.</p>
+                        )}
                     </div>
                 </div>
             </div>

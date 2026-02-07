@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-export const Questionnaire: React.FC = () => {
+interface QuestionnaireProps {
+    onDataChange?: (data: any) => void;
+}
+
+export const Questionnaire: React.FC<QuestionnaireProps> = ({ onDataChange }) => {
   const [formData, setFormData] = useState({
     entity: '',
     homeCountry: '',
@@ -13,9 +17,24 @@ export const Questionnaire: React.FC = () => {
   const [result, setResult] = useState<'idle' | 'approved' | 'rejected'>('idle');
   const [resultMessage, setResultMessage] = useState('');
 
+  // Propagate changes to parent (AI Context)
+  useEffect(() => {
+    if (onDataChange) {
+        onDataChange(formData);
+    }
+  }, [formData, onDataChange]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setResult('idle'); // Reset result on change
+  };
+
+  // Calculate Max Date based on Policy (20 Days)
+  const getMaxEndDate = () => {
+    if (!formData.startDate) return undefined;
+    const date = new Date(formData.startDate);
+    date.setDate(date.getDate() + 20); // Policy limit
+    return date.toISOString().split('T')[0];
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -48,6 +67,13 @@ export const Questionnaire: React.FC = () => {
     // If passed all checks
     setResult('approved');
     setResultMessage("Request Approved: Your trip matches our safe harbor criteria. An automated confirmation email has been sent to you and your manager.");
+  };
+
+  const maxDate = getMaxEndDate();
+
+  const formatDateForDisplay = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
   };
 
   return (
@@ -108,8 +134,20 @@ export const Questionnaire: React.FC = () => {
                 <input required type="date" name="startDate" onChange={handleChange} className="w-full bg-white border border-gray-300 rounded-sm p-3 text-sm focus:ring-1 focus:ring-[#42b0d5] focus:border-[#42b0d5] outline-none transition-colors" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">End Date</label>
-                <input required type="date" name="endDate" onChange={handleChange} className="w-full bg-white border border-gray-300 rounded-sm p-3 text-sm focus:ring-1 focus:ring-[#42b0d5] focus:border-[#42b0d5] outline-none transition-colors" />
+                 <div className="flex justify-between">
+                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">End Date</label>
+                    {maxDate && <span className="text-xs text-[#42b0d5] font-medium">Policy limit: {formatDateForDisplay(maxDate)}</span>}
+                </div>
+                <input 
+                    required 
+                    type="date" 
+                    name="endDate" 
+                    onChange={handleChange}
+                    disabled={!formData.startDate}
+                    min={formData.startDate}
+                    max={maxDate} 
+                    className="w-full bg-white border border-gray-300 rounded-sm p-3 text-sm focus:ring-1 focus:ring-[#42b0d5] focus:border-[#42b0d5] outline-none transition-colors disabled:bg-gray-100 disabled:text-gray-400 cursor-pointer disabled:cursor-not-allowed" 
+                />
               </div>
            </div>
 

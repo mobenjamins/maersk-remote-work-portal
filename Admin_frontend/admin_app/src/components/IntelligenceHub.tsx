@@ -152,7 +152,7 @@ const IntelligenceHub = () => {
         </div>
       </div>
 
-      {/* Actionable Insights Section */}
+      {/* Actionable Insights Section - Staggered List */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-8">
         <div className="md:col-span-2 bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
@@ -163,8 +163,14 @@ const IntelligenceHub = () => {
             <button className="text-[10px] font-bold text-maersk-blue hover:underline uppercase tracking-wider">View All</button>
           </div>
           <div className="divide-y divide-gray-100">
-            {recentChats.map((chat) => (
-              <div key={chat.id} className="px-6 py-4 flex flex-col gap-1 hover:bg-gray-50 transition-colors group">
+            {recentChats.map((chat, i) => (
+              <motion.div 
+                key={chat.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="px-6 py-4 flex flex-col gap-1 hover:bg-gray-50 transition-colors group"
+              >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${
@@ -189,12 +195,17 @@ const IntelligenceHub = () => {
                         "{chat.summary}"
                     </p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
 
-        <div className="bg-maersk-dark text-white rounded-sm p-6 flex flex-col shadow-xl relative overflow-hidden group">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.4 }}
+          className="bg-maersk-dark text-white rounded-sm p-6 flex flex-col shadow-xl relative overflow-hidden group"
+        >
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
             <AlertTriangle size={120} />
           </div>
@@ -215,7 +226,7 @@ const IntelligenceHub = () => {
               Draft Policy Update
             </button>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* AI Draft Policy Modal */}
