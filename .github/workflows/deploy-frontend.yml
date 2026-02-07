@@ -71,7 +71,12 @@ jobs:
           mkdir -p dist/employer
           cp -r Admin_frontend/admin-app/dist/* dist/employer/
 
-          # Create a simple index.html redirect if needed
+          # Add .nojekyll to bypass Jekyll processing
+          touch dist/.nojekyll
+
+          # Copy index.html as 404.html for SPA routing
+          cp dist/index.html dist/404.html
+
           ls -la dist/
 
       - name: Setup Pages
