@@ -1,0 +1,87 @@
+name: Deploy Frontends to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Frontend/**'
+      - 'Admin_frontend/admin-app/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # Build Employee Frontend
+      - name: Install employee frontend dependencies
+        working-directory: ./Frontend
+        run: npm install
+
+      - name: Build employee frontend
+        working-directory: ./Frontend
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: npm run build
+
+      # Build Admin Frontend
+      - name: Install admin frontend dependencies
+        working-directory: ./Admin_frontend/admin-app
+        run: npm install
+
+      - name: Build admin frontend
+        working-directory: ./Admin_frontend/admin-app
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: npm run build
+
+      # Combine both builds
+      - name: Prepare GitHub Pages content
+        run: |
+          # Create dist directory for GitHub Pages
+          mkdir -p dist
+
+          # Copy employee frontend to root
+          cp -r Frontend/dist/* dist/
+
+          # Copy admin frontend to /employer subpath
+          mkdir -p dist/employer
+          cp -r Admin_frontend/admin-app/dist/* dist/employer/
+
+          # Create a simple index.html redirect if needed
+          ls -la dist/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
