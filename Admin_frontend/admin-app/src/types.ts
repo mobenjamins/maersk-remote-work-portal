@@ -34,6 +34,8 @@ export interface AdminRequest {
   is_exception_request?: boolean;
   exception_reason?: string;
   decision_notified_at?: string;
+  manager_full_name?: string;
+  manager_email?: string;
 }
 
 export interface AdminAnalytics {

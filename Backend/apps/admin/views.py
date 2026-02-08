@@ -8,7 +8,7 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, HtmlContent
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, mixins
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -73,10 +73,10 @@ class AdminDashboardViewSet(viewsets.ViewSet):
         return Response(serializer.data)
 
 
-class AdminRequestViewSet(viewsets.ReadOnlyModelViewSet):
+class AdminRequestViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
     """
     API endpoints for admin request management.
-    Allows admins to view and filter all remote work requests.
+    Allows admins to view, filter, and delete remote work requests.
     """
 
     permission_classes = [IsAuthenticated, IsAdminUser]

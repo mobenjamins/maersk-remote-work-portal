@@ -17,6 +17,8 @@ export interface Request {
   flags?: string[];
   decisionReason?: string;
   exceptionReason?: string;
+  managerName?: string;
+  managerEmail?: string;
 }
 
 export const mockRequests: Request[] = [
@@ -32,19 +34,8 @@ export const mockRequests: Request[] = [
     status: 'escalated',
     riskLevel: 'low',
     createdAt: format(subDays(new Date(), 12), 'yyyy-MM-dd'),
-  },
-  {
-    id: '2',
-    reference: 'SIRW-2026-0041',
-    employeeName: 'Marcus T.',
-    role: 'Sales Director',
-    homeCountry: 'UK',
-    destinationCountry: 'France',
-    startDate: format(addDays(new Date(), 5), 'yyyy-MM-dd'),
-    endDate: format(addDays(new Date(), 15), 'yyyy-MM-dd'),
-    status: 'rejected',
-    riskLevel: 'high',
-    createdAt: format(subDays(new Date(), 4), 'yyyy-MM-dd'),
+    managerName: 'Lars Jensen',
+    managerEmail: 'lars.jensen@maersk.com',
   },
   {
     id: '3',
@@ -58,6 +49,8 @@ export const mockRequests: Request[] = [
     status: 'approved',
     riskLevel: 'low',
     createdAt: format(subDays(new Date(), 2), 'yyyy-MM-dd'),
+    managerName: 'Mike Ross',
+    managerEmail: 'mike.ross@maersk.com',
   },
   {
     id: '4',
@@ -71,6 +64,8 @@ export const mockRequests: Request[] = [
     status: 'escalated',
     riskLevel: 'medium',
     createdAt: format(subDays(new Date(), 20), 'yyyy-MM-dd'),
+    managerName: 'Raj Patel',
+    managerEmail: 'raj.patel@maersk.com',
   },
   {
     id: '5',
@@ -84,5 +79,7 @@ export const mockRequests: Request[] = [
     status: 'escalated',
     riskLevel: 'low',
     createdAt: format(subDays(new Date(), 8), 'yyyy-MM-dd'),
+    managerName: 'Emma Watson',
+    managerEmail: 'emma.watson@maersk.com',
   },
 ];

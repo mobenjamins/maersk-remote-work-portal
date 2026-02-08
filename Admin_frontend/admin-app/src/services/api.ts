@@ -39,6 +39,8 @@ export interface AdminRequest {
   is_exception_request?: boolean;
   exception_reason?: string;
   decision_notified_at?: string;
+  manager_full_name?: string;
+  manager_email?: string;
 }
 
 export interface AdminAnalytics {
@@ -202,6 +204,13 @@ export async function decideAdminRequest(id: string, decision: 'approved' | 'rej
   });
   if (!response.ok) throw new Error('Failed to record decision');
   return response.json();
+}
+
+export async function deleteAdminRequest(id: string): Promise<void> {
+  const response = await fetchWithAuth(`/admin/requests/${id}/`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Failed to delete request');
 }
 
 // Admin Users endpoints

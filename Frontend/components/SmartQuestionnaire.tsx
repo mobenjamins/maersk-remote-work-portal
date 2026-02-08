@@ -12,6 +12,7 @@ import {
   submitSIRWRequest, 
   updateUserProfile,
   getSIRWAnnualBalance,
+  extractApprovalFromFile,
   SIRWSubmissionResponse,
   AnnualBalanceResponse,
 } from '../services/api';
@@ -70,6 +71,7 @@ export const SmartQuestionnaire: React.FC<SmartQuestionnaireProps> = ({
 
   // UI state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [extractionStatus, setExtractionStatus] = useState<'idle' | 'success' | 'failed'>('idle');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
@@ -132,94 +134,36 @@ export const SmartQuestionnaire: React.FC<SmartQuestionnaireProps> = ({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // File upload handler with AI extraction
+  // File upload handler with AI extraction (Backend)
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadedFile(file);
     setIsAnalyzing(true);
+    setExtractionStatus('idle');
 
     try {
-      // Read file content
-      const content = await readFileAsText(file);
+      // Use backend API for secure extraction
+      const extracted = await extractApprovalFromFile(file);
       
-      // Extract manager details using Gemini
-      const extracted = await extractManagerDetailsWithAI(content);
-      
-      if (extracted) {
+      if (extracted.managerName || extracted.managerEmail) {
         setFormData(prev => ({
           ...prev,
-          managerName: `${extracted.firstName} ${extracted.lastName}`.trim(),
-          managerEmail: extracted.email,
+          managerName: extracted.managerName || prev.managerName,
+          managerEmail: extracted.managerEmail || prev.managerEmail,
         }));
+        setExtractionStatus('success');
+      } else {
+        setExtractionStatus('failed');
       }
     } catch (error) {
       console.error('Error extracting manager details:', error);
+      setExtractionStatus('failed');
     } finally {
       setIsAnalyzing(false);
     }
   }, []);
-
-  // Helper to read file as text
-  const readFileAsText = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsText(file);
-    });
-  };
-
-  // AI extraction using Gemini
-  const extractManagerDetailsWithAI = async (content: string): Promise<{ firstName: string; lastName: string; email: string } | null> => {
-    try {
-      const { GoogleGenAI } = await import('@google/genai');
-      const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || 
-                     (import.meta as any).env?.GEMINI_API_KEY;
-      
-      if (!apiKey) {
-        console.warn('Gemini API key not found');
-        return null;
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
-      
-      const prompt = `Extract the manager's details from this email or document. 
-The manager is the person who sent the approval or is mentioned as the approving manager.
-
-Return ONLY a JSON object with these fields:
-- firstName: The manager's first name
-- lastName: The manager's last name
-- email: The manager's email address
-
-Document content:
-${content.substring(0, 3000)}
-
-Respond with ONLY the JSON object, no other text.`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-      });
-
-      const text = response.text?.trim() || '';
-      
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return {
-          firstName: parsed.firstName || '',
-          lastName: parsed.lastName || '',
-          email: parsed.email || '',
-        };
-      }
-    } catch (error) {
-      console.error('AI extraction error:', error);
-    }
-    return null;
-  };
 
   // Validate and go to next step
   const validateAndNext = () => {
@@ -435,7 +379,20 @@ Respond with ONLY the JSON object, no other text.`;
                   <input type="file" className="hidden" accept=".msg,.pdf,.eml,.txt" onChange={handleFileUpload} />
                 </label>
                 {isAnalyzing && <span className="text-sm text-[#42b0d5] animate-pulse">AI extracting details...</span>}
-                {uploadedFile && !isAnalyzing && <span className="text-sm text-[#42b0d5]">File uploaded</span>}
+                {uploadedFile && !isAnalyzing && (
+                  <div className="flex items-center animate-in fade-in slide-in-from-left-2 duration-300">
+                    {extractionStatus === 'success' ? (
+                      <>
+                        <svg className="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-sm font-medium text-emerald-700">Approval verified</span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-[#6a6a6a]">File attached</span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

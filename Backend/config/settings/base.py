@@ -126,7 +126,7 @@ SPECTACULAR_SETTINGS = {
 
 # Gemini AI Configuration
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = "gemini-3-flash-preview"
+GEMINI_MODEL = "gemini-1.5-flash"
 
 # Email Configuration (SendGrid HTTP API — SMTP ports blocked on Railway)
 SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", os.environ.get("EMAIL_HOST_PASSWORD", ""))

@@ -1,12 +1,13 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, Globe, CheckCircle, X, Map as MapIcon, Home, Plane, Loader2, ArrowRight } from 'lucide-react';
+import { Users, Globe, CheckCircle, X, Map as MapIcon, Home, Plane, Loader2, ArrowRight, AlertCircle, XCircle, Filter, Calendar } from 'lucide-react';
 import { scaleLinear } from 'd3-scale';
 import { Tooltip as ReactTooltip } from 'react-tooltip';
 import { getAdminDashboard, getAdminRequests, type AdminAnalytics, type AdminRequest } from '../services/api';
 import { mockRequests, type Request } from '../data/mockData';
+import { format, parseISO, isWithinInterval, subMonths } from 'date-fns';
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
@@ -56,6 +57,13 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [apiRequests, setApiRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Global Filters
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
+  const [countryFilter, setCountryFilter] = useState<string>('');
+
+  const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadData();
@@ -77,7 +85,26 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
     }
   };
 
-  const requests = apiRequests.length > 0 ? apiRequests : mockRequests;
+  const requests = useMemo(() => {
+    let base = apiRequests.length > 0 ? apiRequests : mockRequests;
+    
+    // Apply Global Filters
+    if (dateRange.start && dateRange.end) {
+      base = base.filter(r => {
+        const d = parseISO(r.createdAt || r.startDate);
+        return isWithinInterval(d, { start: parseISO(dateRange.start), end: parseISO(dateRange.end) });
+      });
+    }
+    
+    if (countryFilter) {
+      base = base.filter(r => 
+        r.homeCountry.toLowerCase().includes(countryFilter.toLowerCase()) || 
+        r.destinationCountry.toLowerCase().includes(countryFilter.toLowerCase())
+      );
+    }
+    
+    return base;
+  }, [apiRequests, dateRange, countryFilter]);
 
   const heatMapData = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -99,21 +126,30 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
     }
     if (filterType === 'kpi' && filterValue) {
       if (filterValue === 'approved') return requests.filter(r => r.status === 'approved');
+      if (filterValue === 'rejected') return requests.filter(r => r.status === 'rejected');
+      if (filterValue === 'review') return requests.filter(r => r.status === 'escalated');
       return requests;
     }
+    if (filterType === 'trend') return requests; // Simplified trend drilldown
     return requests.slice(0, 3);
   }, [filterType, filterValue, mapMode, requests]);
 
-  const totalRequests = analytics?.total_requests ?? requests.length;
-  const approvedCount = analytics?.approved_requests ?? requests.filter(r => r.status === 'approved').length;
-  const uniqueCountries = new Set(requests.map(r => r.destinationCountry)).size;
-  const triage = useMemo(() => {
-    return {
-      approved: requests.filter(r => r.status === 'approved').length,
-      rejected: requests.filter(r => r.status === 'rejected').length,
-      reviewRequired: requests.filter(r => r.status === 'escalated').length,
-    };
-  }, [requests]);
+  const totalRequests = requests.length;
+  const approvedCount = requests.filter(r => r.status === 'approved').length;
+  const rejectedCount = requests.filter(r => r.status === 'rejected').length;
+  const reviewCount = requests.filter(r => r.status === 'escalated').length;
+
+  const scrollToTable = () => {
+    setTimeout(() => {
+      tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
+  const handleKpiClick = (type: string) => {
+    setFilterType('kpi');
+    setFilterValue(type);
+    scrollToTable();
+  };
 
   if (loading) {
     return (
@@ -127,74 +163,131 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
   }
 
   return (
-    <div className="p-8 space-y-8 pb-20">
+    <div className="p-8 space-y-8 pb-20 relative">
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-2xl font-light text-gray-900 mb-1">Analytics view</h2>
           <p className="text-sm text-gray-500 font-light italic">Click on any chart or metric to drill down into specific case data.</p>
         </div>
+        
+        <div className="relative">
+          <button 
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className={`flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-sm text-xs font-bold uppercase tracking-widest transition-all ${isFilterOpen ? 'text-maersk-blue border-maersk-blue ring-1 ring-maersk-blue/20' : 'text-gray-600 hover:border-gray-400'}`}
+          >
+            <Filter size={14} />
+            Filter Data
+          </button>
+          
+          <AnimatePresence>
+            {isFilterOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-sm shadow-xl p-5 z-50 origin-top-right"
+              >
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 block mb-2">Date Range</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="relative">
+                        <input 
+                          type="date" 
+                          value={dateRange.start}
+                          onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                          className="w-full text-xs p-2 border border-gray-200 rounded-sm focus:border-maersk-blue outline-none"
+                        />
+                      </div>
+                      <div className="relative">
+                        <input 
+                          type="date" 
+                          value={dateRange.end}
+                          onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                          className="w-full text-xs p-2 border border-gray-200 rounded-sm focus:border-maersk-blue outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 block mb-2">Country</label>
+                    <input 
+                      type="text" 
+                      placeholder="Filter by country..."
+                      value={countryFilter}
+                      onChange={(e) => setCountryFilter(e.target.value)}
+                      className="w-full text-xs p-2 border border-gray-200 rounded-sm focus:border-maersk-blue outline-none"
+                    />
+                  </div>
+
+                  <div className="pt-2 flex justify-end gap-2">
+                    <button 
+                      onClick={() => { setDateRange({ start: '', end: '' }); setCountryFilter(''); }}
+                      className="text-xs text-gray-500 hover:text-gray-700 underline px-2"
+                    >
+                      Clear
+                    </button>
+                    <button 
+                      onClick={() => setIsFilterOpen(false)}
+                      className="px-4 py-1.5 bg-maersk-blue text-white text-xs font-bold rounded-sm uppercase"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
-      {/* KPI Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div onClick={() => { setFilterType('kpi'); setFilterValue('total'); }}>
+      {/* KPI Grid - 4 Columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div onClick={() => handleKpiClick('total')}>
           <KPICard
             title="Total Requests"
             value={<AnimatedCounter value={totalRequests} />}
-            change="+12%"
+            change="All time"
             icon={Users}
             color="blue"
             active={filterValue === 'total'}
             delay={0}
           />
         </div>
-        <div onClick={() => { setFilterType('kpi'); setFilterValue('active'); }}>
+        <div onClick={() => handleKpiClick('review')}>
           <KPICard
-            title="Active Corridors"
-            value={<AnimatedCounter value={uniqueCountries} />}
-            change="Live"
-            icon={Globe}
-            color="cyan"
-            active={filterValue === 'active'}
+            title="Review Required"
+            value={<AnimatedCounter value={reviewCount} />}
+            change="Action Needed"
+            icon={AlertCircle}
+            color="amber"
+            active={filterValue === 'review'}
             delay={0.1}
           />
         </div>
-        <div onClick={() => { setFilterType('kpi'); setFilterValue('approved'); }}>
+        <div onClick={() => handleKpiClick('approved')}>
           <KPICard
             title="Approved"
             value={<AnimatedCounter value={approvedCount} />}
-            change="High"
+            change="Stable"
             icon={CheckCircle}
             color="emerald"
             active={filterValue === 'approved'}
             delay={0.2}
           />
         </div>
-      </div>
-
-      {/* Triage widget */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          { label: 'Review required', value: triage.reviewRequired, tone: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
-          { label: 'Approved', value: triage.approved, tone: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
-          { label: 'Rejected', value: triage.rejected, tone: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100' },
-        ].map((item) => (
-          <div
-            key={item.label}
-            className={`flex items-center justify-between px-5 py-4 rounded-sm border ${item.border} ${item.bg} shadow-sm`}
-          >
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{item.label}</div>
-              <div className={`text-2xl font-semibold ${item.tone}`}>{item.value}</div>
-            </div>
-            <button
-              onClick={() => setFilterType('kpi')}
-              className="text-[10px] font-bold uppercase tracking-widest text-maersk-blue hover:underline"
-            >
-              View
-            </button>
-          </div>
-        ))}
+        <div onClick={() => handleKpiClick('rejected')}>
+          <KPICard
+            title="Rejected"
+            value={<AnimatedCounter value={rejectedCount} />}
+            change="Closed"
+            icon={XCircle}
+            color="red"
+            active={filterValue === 'rejected'}
+            delay={0.3}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -246,6 +339,7 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
                           if (count > 0) {
                             setFilterType('country');
                             setFilterValue(countryName);
+                            scrollToTable();
                           }
                         }}
                         style={{
@@ -279,7 +373,11 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}
           className="bg-white border border-gray-200 rounded-sm p-6 shadow-sm flex flex-col cursor-pointer hover:border-maersk-blue/30 transition-colors"
-          onClick={() => { setFilterType('trend'); setFilterValue('july'); }}
+          onClick={() => { 
+            setFilterType('trend'); 
+            setFilterValue('july'); 
+            scrollToTable();
+          }}
         >
           <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-1">Volume Analysis</h3>
           <p className="text-[11px] text-gray-500 mb-8 uppercase tracking-widest">Monthly Submissions</p>
@@ -315,10 +413,11 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
       <AnimatePresence>
         {filterType !== 'all' && (
           <motion.div
+            ref={tableRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="bg-white border-t-4 border-maersk-blue rounded-sm shadow-2xl p-6"
+            className="bg-white border-t-4 border-maersk-blue rounded-sm shadow-2xl p-6 scroll-mt-24"
           >
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">
@@ -400,6 +499,7 @@ const KPICard = ({ title, value, change, icon: Icon, color, active, delay = 0 }:
     cyan: 'text-maersk-blue bg-maersk-light',
     emerald: 'text-emerald-600 bg-emerald-50',
     amber: 'text-amber-600 bg-amber-50',
+    red: 'text-red-600 bg-red-50',
   };
 
   return (
@@ -407,7 +507,7 @@ const KPICard = ({ title, value, change, icon: Icon, color, active, delay = 0 }:
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
-      className={`bg-white border p-6 rounded-sm shadow-sm hover:shadow-md transition-all cursor-pointer group ${
+      className={`bg-white border p-6 rounded-sm shadow-sm hover:shadow-md transition-all cursor-pointer group h-full ${
         active ? 'border-maersk-blue ring-1 ring-maersk-blue/10 scale-[1.02]' : 'border-gray-200'
       }`}
     >

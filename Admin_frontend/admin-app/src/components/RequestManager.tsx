@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Download, X, AlertCircle, CheckCircle, Clock, XCircle, MoreVertical } from 'lucide-react';
-import { getAdminRequests, decideAdminRequest, type AdminRequest } from '../services/api';
+import { Search, Download, X, AlertCircle, CheckCircle, Clock, XCircle, MoreVertical, ChevronDown, ChevronUp, CheckSquare, Shield, ShieldAlert, ShieldCheck, Trash2 } from 'lucide-react';
+import { getAdminRequests, decideAdminRequest, deleteAdminRequest, type AdminRequest } from '../services/api';
 import { mockRequests, type Request } from '../data/mockData';
+import { format, differenceInDays, parseISO } from 'date-fns';
 
 function mapApiRequest(r: AdminRequest, index: number): Request {
   const mappedStatus = r.status === 'pending' ? 'escalated' : r.status;
@@ -23,6 +24,8 @@ function mapApiRequest(r: AdminRequest, index: number): Request {
     flags: r.flags,
     decisionReason: r.decision_reason,
     exceptionReason: r.exception_reason,
+    managerName: r.manager_full_name,
+    managerEmail: r.manager_email,
   };
 }
 
@@ -51,6 +54,55 @@ const EmployeeHoverCard = ({ employeeName, role, homeCountry }: { employeeName: 
   </motion.div>
 );
 
+const CollapsibleSection = ({ title, children, defaultOpen = false }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border-b border-gray-100 last:border-0 py-4">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full text-left group"
+      >
+        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-maersk-blue transition-colors">
+          {title}
+        </h4>
+        <div className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+          <ChevronDown size={16} />
+        </div>
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="pt-4 pb-2">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const ChecklistItem = ({ label, passed, flag }: { label: string, passed: boolean, flag?: string }) => (
+  <div className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
+    <div className={`mt-0.5 ${passed ? 'text-emerald-500' : 'text-red-500'}`}>
+      {passed ? <CheckCircle size={14} /> : <XCircle size={14} />}
+    </div>
+    <div className="flex-1">
+      <div className={`text-xs font-medium ${passed ? 'text-gray-700' : 'text-red-600'}`}>{label}</div>
+      {!passed && flag && (
+        <div className="text-[10px] text-red-400 mt-0.5">Flagged: {flag}</div>
+      )}
+    </div>
+  </div>
+);
+
 const RequestManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'review' | 'approved' | 'rejected'>('all');
@@ -60,6 +112,7 @@ const RequestManager = () => {
   const [requests, setRequests] = useState<Request[]>(mockRequests);
   const [decisionNote, setDecisionNote] = useState('');
   const [isSubmittingDecision, setIsSubmittingDecision] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,6 +143,23 @@ const RequestManager = () => {
       // keep drawer open if decision fails
     } finally {
       setIsSubmittingDecision(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedRequest) return;
+    if (!window.confirm('Are you sure you want to delete this request? This action cannot be undone.')) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteAdminRequest(selectedRequest.id);
+      const data = await getAdminRequests();
+      setRequests(data.map((r, i) => mapApiRequest(r, i)));
+      setSelectedRequest(null);
+    } catch (error) {
+      alert('Failed to delete request');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -134,69 +204,40 @@ const RequestManager = () => {
     return getWaitingDays(b) - getWaitingDays(a);
   });
 
-  const policyEvidence = {
-    rightToWork: {
-      section: 'Section 4.1.3 Immigration',
-      snippet: 'For permission to be granted for SIRW, a colleague must have the right to work in the relevant country.',
-    },
-    sanctions: {
-      section: 'Section 4.1.3 Relevant countries',
-      snippet: 'SIRW cannot be performed in countries with no Maersk entity',
-    },
-    eligibility: {
-      section: 'Section 4.1.1 Eligibility',
-      snippet: 'Those in frontline, customer-facing roles',
-    },
-    durationAnnual: {
-      section: 'Section 4.1.2 Duration allowed',
-      snippet: 'SIRW can be approved up to a strict maximum of 20 workdays in a calendar year.',
-    },
-    durationConsecutive: {
-      section: 'Section 4.1.2 Duration allowed',
-      snippet: 'The 20 workdays cannot be taken as a single block of 20 continuous days,',
-    },
-    extended: {
-      section: 'Section 5 Extended SIRW (Exceptional)',
-      snippet: 'Exceptional circumstances might be the birth of a child in a foreign country or serious illness / death of immediate family in another country.',
-    },
-  };
-
-  const buildEvidence = (req: Request) => {
-    const flags = req.flags || [];
-    const evidence: Array<{ section: string; snippet: string; reason: string }> = [];
-
-    if (flags.includes('no_right_to_work')) {
-      evidence.push({ ...policyEvidence.rightToWork, reason: 'Right to work not confirmed.' });
-    }
-    if (flags.includes('sanctioned_country')) {
-      evidence.push({ ...policyEvidence.sanctions, reason: 'Destination is sanctioned or blocked.' });
-    }
-    if (flags.includes('role_ineligible')) {
-      evidence.push({ ...policyEvidence.eligibility, reason: 'Role category not eligible.' });
-    }
-    if (flags.includes('exceeds_annual_limit')) {
-      evidence.push({ ...policyEvidence.durationAnnual, reason: 'Exceeds annual limit.' });
-    }
-    if (flags.includes('exceeds_consecutive_limit')) {
-      evidence.push({ ...policyEvidence.durationConsecutive, reason: 'Exceeds consecutive limit.' });
-    }
-    if (flags.some((f) => f.startsWith('exception:')) || req.status === 'escalated') {
-      evidence.push({ ...policyEvidence.extended, reason: 'Exception requested.' });
-    }
-
-    return evidence;
-  };
-
   const getAiRecommendation = (req: Request) => {
     const flags = req.flags || [];
     const hardBlock = flags.includes('no_right_to_work') || flags.includes('sanctioned_country') || flags.includes('role_ineligible');
+    
+    // Strict rejection for hard blocks
     if (hardBlock) {
-      return { decision: 'Reject', rationale: 'Hard policy blockers detected.' };
+      return { 
+        decision: 'Reject', 
+        rationale: 'Request violates core policy requirements (Role Eligibility, Right to Work, or Sanctions). Immediate rejection recommended.',
+        color: 'text-red-600'
+      };
     }
+    
+    // Strict scrutiny for limits
     if (flags.includes('exceeds_annual_limit') || flags.includes('exceeds_consecutive_limit')) {
-      return { decision: 'Approve', rationale: 'Eligible with exception; no hard blockers detected.' };
+      if (!req.exceptionReason || req.exceptionReason.length < 10) {
+        return { 
+            decision: 'Reject', 
+            rationale: 'Request exceeds 20-day policy limit without a sufficient exception reason provided. Policy strictly limits SIRW to 20 days.',
+            color: 'text-red-600'
+        };
+      }
+      return { 
+          decision: 'Escalate / Review', 
+          rationale: 'Request exceeds policy limits. Review exception reason carefully. Approval should only be granted for exceptional circumstances (e.g., family emergency).',
+          color: 'text-amber-600'
+      };
     }
-    return { decision: 'Approve', rationale: 'No hard blockers detected.' };
+
+    return { 
+        decision: 'Approve', 
+        rationale: 'Request complies with standard SIRW policy criteria. No flags detected.',
+        color: 'text-emerald-600'
+    };
   };
 
   const getStatusStyle = (status: string) => {
@@ -234,8 +275,25 @@ const RequestManager = () => {
     return '—';
   };
 
+  const formatDate = (dateStr: string) => {
+    try {
+        return format(parseISO(dateStr), 'dd MMM yyyy');
+    } catch {
+        return dateStr;
+    }
+  };
+
+  const getDurationString = (start: string, end: string) => {
+      try {
+          const days = differenceInDays(parseISO(end), parseISO(start)) + 1;
+          return `${days} day${days !== 1 ? 's' : ''}`;
+      } catch {
+          return '';
+      }
+  };
+
   return (
-    <div className="p-8 space-y-8 h-full flex flex-col">
+    <div className="p-8 space-y-8 h-full flex flex-col bg-gray-50/50">
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-2xl font-light text-gray-900 mb-1">Dashboard</h2>
@@ -357,8 +415,8 @@ const RequestManager = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-[11px] text-gray-600">
-                        <div>{req.startDate}</div>
-                        <div className="text-gray-400">to {req.endDate}</div>
+                        <div>{formatDate(req.startDate)}</div>
+                        <div className="text-gray-400">to {formatDate(req.endDate)}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -408,21 +466,31 @@ const RequestManager = () => {
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               className="relative w-full max-w-xl bg-white shadow-2xl h-full flex flex-col"
             >
-              <div className="p-8 border-b border-gray-100 flex justify-between items-center">
+              <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <div>
                   <h3 className="text-xl font-light text-gray-900">Case Review</h3>
                   <p className="text-xs font-bold text-maersk-blue uppercase tracking-widest mt-1">{selectedRequest.reference}</p>
                 </div>
-                <button
-                  onClick={() => { setSelectedRequest(null); setDecisionNote(''); }}
-                  className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
-                >
-                  <X size={20} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-full transition-colors"
+                    title="Delete Request"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                  <button
+                    onClick={() => { setSelectedRequest(null); setDecisionNote(''); }}
+                    className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
 
-              <div className="flex-1 overflow-auto p-8 space-y-8">
-                <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-sm">
+              <div className="flex-1 overflow-auto p-8 space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-sm mb-6">
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-full ${getStatusStyle(selectedRequest.status)}`}>
                       {getStatusIcon(selectedRequest.status)}
@@ -434,34 +502,61 @@ const RequestManager = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-8">
-                  <section>
-                    <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Employee Details</h4>
-                    <div className="space-y-3">
-                      <div>
-                        <div className="text-xs text-gray-500">Full Name</div>
-                        <div className="text-sm font-semibold text-gray-900">{selectedRequest.employeeName}</div>
+                <CollapsibleSection title="Request Details" defaultOpen={true}>
+                    <div className="grid grid-cols-2 gap-8">
+                      <div className="space-y-4">
+                        <div>
+                            <div className="text-xs text-gray-500 mb-1">Full Name</div>
+                            <div className="text-sm font-semibold text-gray-900">{selectedRequest.employeeName}</div>
+                        </div>
+                        <div>
+                            <div className="text-xs text-gray-500 mb-1">Line Manager (Approver)</div>
+                            <div className="text-sm font-semibold text-gray-900">{selectedRequest.managerName || 'Pending Assignment'}</div>
+                            {selectedRequest.managerEmail && (
+                                <div className="text-xs text-gray-400 mt-0.5">{selectedRequest.managerEmail}</div>
+                            )}
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-xs text-gray-500">Corporate Role</div>
-                        <div className="text-sm text-gray-900">{selectedRequest.role}</div>
+                      <div className="space-y-4">
+                         <div>
+                            <div className="text-xs text-gray-500 mb-1">Route</div>
+                            <div className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                {selectedRequest.homeCountry} <span className="text-gray-300">→</span> {selectedRequest.destinationCountry}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-xs text-gray-500 mb-1">Duration</div>
+                            <div className="text-sm font-semibold text-gray-900">{getDurationString(selectedRequest.startDate, selectedRequest.endDate)}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">{formatDate(selectedRequest.startDate)} — {formatDate(selectedRequest.endDate)}</div>
+                        </div>
                       </div>
                     </div>
-                  </section>
-                  <section>
-                    <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Trip Logistics</h4>
-                    <div className="space-y-3">
-                      <div>
-                        <div className="text-xs text-gray-500">Route</div>
-                        <div className="text-sm font-semibold text-gray-900">{selectedRequest.homeCountry} → {selectedRequest.destinationCountry}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500">Period</div>
-                        <div className="text-sm text-gray-900">{selectedRequest.startDate} to {selectedRequest.endDate}</div>
-                      </div>
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Compliance Checklist" defaultOpen={true}>
+                    <div className="bg-gray-50/50 rounded-sm p-4 border border-gray-100">
+                        <ChecklistItem 
+                            label="Role Eligibility (Not Frontline/Sales)" 
+                            passed={!(selectedRequest.flags || []).includes('role_ineligible')}
+                            flag="Ineligible Role" 
+                        />
+                        <ChecklistItem 
+                            label="Duration (Max 20 Days/Year)" 
+                            passed={!(selectedRequest.flags || []).includes('exceeds_annual_limit')}
+                            flag="Exceeds Annual Limit" 
+                        />
+                         <ChecklistItem 
+                            label="Right to Work Confirmed" 
+                            passed={!(selectedRequest.flags || []).includes('no_right_to_work')}
+                            flag="Right to Work Missing" 
+                        />
+                         <ChecklistItem 
+                            label="Destination Permitted (Not Sanctioned)" 
+                            passed={!(selectedRequest.flags || []).includes('sanctioned_country')}
+                            flag="Sanctioned Country" 
+                        />
                     </div>
-                  </section>
-                </div>
+                </CollapsibleSection>
 
                 <section className="pt-6 border-t border-gray-100">
                   <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4">Review Summary</h4>
@@ -478,42 +573,20 @@ const RequestManager = () => {
                           )}
                         </div>
                       )}
-                      <div className="p-4 bg-amber-50/40 border border-amber-100 rounded-sm">
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-amber-700 mb-2">Why review is required</div>
-                        <ul className="space-y-3 text-xs text-gray-700">
-                          {buildEvidence(selectedRequest).map((e, idx) => (
-                            <li key={idx} className="leading-relaxed flex gap-2">
-                              <CheckCircle size={14} className="text-gray-400 mt-0.5" />
-                              <div>
-                                <div className="font-semibold">{e.section}</div>
-                                <div className="text-gray-700">“{e.snippet}”</div>
-                                <div className="text-[11px] text-gray-500">Reason: {e.reason}</div>
-                              </div>
-                            </li>
-                          ))}
-                          {buildEvidence(selectedRequest).length === 0 && (
-                            <li className="text-gray-500">No explicit policy flags were recorded.</li>
-                          )}
-                        </ul>
-                      </div>
-
-                      <div className="p-4 bg-white border border-gray-100 rounded-sm shadow-sm">
+                      
+                      <div className="p-4 bg-white border border-gray-100 rounded-sm shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-maersk-blue"></div>
                         <div className="flex items-center justify-between mb-2">
-                          <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500">AI Recommendation</div>
-                          <div className="text-xs font-bold uppercase text-maersk-blue">
+                          <div className="flex items-center gap-2">
+                             <Shield size={14} className="text-maersk-blue" />
+                             <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500">AI Recommendation</div>
+                          </div>
+                          <div className={`text-xs font-bold uppercase ${getAiRecommendation(selectedRequest).color}`}>
                             {getAiRecommendation(selectedRequest).decision}
                           </div>
                         </div>
-                        <div className="text-xs text-gray-700 mb-3">
+                        <div className="text-xs text-gray-700 leading-relaxed">
                           {getAiRecommendation(selectedRequest).rationale}
-                        </div>
-                        <div className="text-[11px] text-gray-500">
-                          Citations:
-                          <ul className="list-disc ml-4 mt-1 space-y-1">
-                            {buildEvidence(selectedRequest).map((e, idx) => (
-                              <li key={idx}>{e.section} — “{e.snippet}”</li>
-                            ))}
-                          </ul>
                         </div>
                       </div>
 
@@ -539,7 +612,7 @@ const RequestManager = () => {
                     <button
                       onClick={() => handleDecision('rejected')}
                       disabled={isSubmittingDecision}
-                      className="flex-1 py-3 px-4 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-sm text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-50"
+                      className="flex-1 py-3 px-4 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-sm text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-50 shadow-sm"
                     >
                       Reject
                     </button>
