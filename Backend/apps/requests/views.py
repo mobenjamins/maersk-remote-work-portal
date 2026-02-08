@@ -258,7 +258,7 @@ def sirw_wizard_submit(request):
         outcome = "pending"
         message = (
             "Your request has been submitted for review by Global Mobility. "
-            "You will receive confirmation via email within 2 business days."
+            "You will receive confirmation via email."
         )
     else:
         # Auto-approve
