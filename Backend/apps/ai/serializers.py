@@ -31,3 +31,11 @@ class CreateChatSessionSerializer(serializers.Serializer):
     """Request serializer for creating a chat session."""
 
     request_id = serializers.UUIDField(required=False)
+
+
+class PolicyChatRequestSerializer(serializers.Serializer):
+    """Request serializer for the policy Q&A chatbot."""
+
+    question = serializers.CharField(max_length=2000)
+    current_context = serializers.CharField(max_length=200, required=False, default="")
+    form_data = serializers.DictField(required=False, default=dict)

@@ -14,4 +14,5 @@ urlpatterns = [
         views.delete_session,
         name="ai-delete-session",
     ),
+    path("policy-chat/", views.policy_chat, name="ai-policy-chat"),
 ]

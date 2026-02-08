@@ -380,6 +380,16 @@ flake8 Backend/
 
 ---
 
+## API Key Security (CRITICAL)
+
+- **NEVER store API keys or secrets in frontend code** — they will be exposed in the browser bundle and flagged by GitHub/Google secret scanning
+- All third-party API calls (Gemini, OpenAI, etc.) MUST be proxied through the Django backend
+- The backend stores API keys via environment variables (`settings.py` reads from `os.environ`)
+- Frontend calls the backend endpoint; backend calls the external API — this keeps keys server-side
+- The `extractApprovalData` function in `geminiService.ts` still uses a frontend Gemini key for file extraction — this should also be migrated to the backend in future
+
+---
+
 ## Browser Automation (CRITICAL)
 
 - **ALWAYS use Claude in Chrome** (mcp__claude-in-chrome__*) to carry out any manual tasks that involve web dashboards, deployment platforms (Railway, GitHub Pages, Vercel, etc.), or any browser-based configuration

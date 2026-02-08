@@ -11,11 +11,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 
-from .gemini_service import get_gemini_service
+from .gemini_service import get_gemini_service, ask_policy_question
 from .serializers import (
     ChatMessageRequestSerializer,
     ChatMessageResponseSerializer,
     CreateChatSessionSerializer,
+    PolicyChatRequestSerializer,
 )
 from apps.requests.models import ChatSession, ChatMessage
 
@@ -192,3 +193,37 @@ def delete_session(request, session_id):
     session.delete()
 
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(
+    request=PolicyChatRequestSerializer,
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "text": {"type": "string"},
+            },
+        }
+    },
+    tags=["AI Chat"],
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def policy_chat(request):
+    """
+    Stateless policy Q&A endpoint.
+
+    The frontend sends a question plus optional form context;
+    the backend builds a system prompt with few-shot examples
+    and calls Gemini, keeping the API key server-side.
+    """
+    serializer = PolicyChatRequestSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    question = serializer.validated_data["question"]
+    current_context = serializer.validated_data.get("current_context", "")
+    form_data = serializer.validated_data.get("form_data", {})
+
+    text = ask_policy_question(question, current_context, form_data)
+
+    return Response({"text": text})

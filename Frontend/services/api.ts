@@ -242,6 +242,21 @@ export async function createChatSession(): Promise<{ session_id: string }> {
   return response.json();
 }
 
+// Policy Q&A chatbot (proxied through backend to keep API key server-side)
+export async function policyChat(question: string, currentContext: string, formData: Record<string, any>): Promise<string> {
+  const response = await fetchWithAuth('/ai/policy-chat/', {
+    method: 'POST',
+    body: JSON.stringify({
+      question,
+      current_context: currentContext,
+      form_data: formData,
+    }),
+  });
+  if (!response.ok) throw new Error('Policy chat failed');
+  const data = await response.json();
+  return data.text;
+}
+
 // Check if user is authenticated
 export function isAuthenticated(): boolean {
   return !!accessToken;
