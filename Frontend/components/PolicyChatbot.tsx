@@ -69,16 +69,22 @@ export const PolicyChatbot: React.FC<PolicyChatbotProps> = ({ isOpen, onClose, f
 
     let responseText = '';
     try {
-      let activeSessionId = sessionId;
-      if (!activeSessionId) {
-        const session = await createChatSession();
-        activeSessionId = session.session_id;
-        setSessionId(activeSessionId);
-      }
-      const response = await sendChatMessage(textToSend, activeSessionId);
-      responseText = response.text || "I couldn't find an answer to that in the policy.";
-    } catch (error) {
+      // Primary: Gemini with full policy context and form data (no PII)
       responseText = await askPolicyQuestion(textToSend, stepName, safeData);
+    } catch (error) {
+      // Fallback: backend chat endpoint
+      try {
+        let activeSessionId = sessionId;
+        if (!activeSessionId) {
+          const session = await createChatSession();
+          activeSessionId = session.session_id;
+          setSessionId(activeSessionId);
+        }
+        const response = await sendChatMessage(textToSend, activeSessionId);
+        responseText = response.text || "I couldn't find an answer to that in the policy.";
+      } catch (backendError) {
+        responseText = "I'm having trouble connecting right now. The key points are: max 20 days/year, you need valid work rights, and manager approval is required.";
+      }
     }
 
     setIsThinking(false);
