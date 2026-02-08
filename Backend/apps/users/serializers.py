@@ -26,6 +26,7 @@ class VerifyOTPSerializer(serializers.Serializer):
 
     email = serializers.EmailField()
     code = serializers.CharField(max_length=6, min_length=6)
+    remember_me = serializers.BooleanField(default=False, required=False)
 
 
 class UserSerializer(serializers.ModelSerializer):

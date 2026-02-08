@@ -5,8 +5,12 @@ Views for user authentication and profile management.
 import logging
 import random
 import string
+from datetime import timedelta
 from typing import Dict
 
+from django.conf import settings
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -71,28 +75,41 @@ def parse_name_from_email(email: str) -> Dict[str, str]:
 def login(request):
     """
     Initiate login by sending OTP to email.
-    For MVP, OTP is not actually sent - any 6-digit code works.
+    Generates a 6-digit code and sends it via email.
     """
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
     email = serializer.validated_data["email"]
 
-    # Generate OTP (for MVP, we log it but don't send)
-    code = "".join(random.choices(string.digits, k=6))
+    # Invalidate any existing unused OTPs for this email
+    OTPCode.objects.filter(email=email, is_used=False).update(is_used=True)
 
-    # Store OTP
+    # Generate and store OTP
+    code = "".join(random.choices(string.digits, k=6))
     OTPCode.objects.create(email=email, code=code)
 
-    # In production, send email here
-    logger.info(f"[MVP] OTP for {email}: {code}")
+    # Send OTP via email
+    try:
+        send_mail(
+            subject="Your Maersk SIRW Portal Security Code",
+            message=f"Your verification code is: {code}\n\nThis code expires in 10 minutes.\n\nIf you did not request this code, please ignore this email.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            html_message=render_to_string("emails/otp.html", {"code": code}),
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send OTP email to {email}: {e}")
+        return Response(
+            {"error": "Failed to send verification code. Please try again."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
     return Response(
         {
             "message": "Verification code sent to your email.",
             "email": email,
-            # For MVP/demo, include the code in response
-            "debug_code": code if True else None,  # Remove in production
         }
     )
 
@@ -110,21 +127,24 @@ def login(request):
 def verify_otp(request):
     """
     Verify OTP and return JWT tokens.
-    For MVP, any 6-digit code is accepted.
+    Validates the code against stored OTPs with expiry check.
     """
     serializer = VerifyOTPSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
     email = serializer.validated_data["email"].lower()
     code = serializer.validated_data["code"]
+    remember_me = serializer.validated_data.get("remember_me", False)
 
-    # MVP: Accept any 6-digit code
-    # In production, validate against OTPCode model:
-    # otp = OTPCode.objects.filter(email=email, code=code, is_used=False).first()
-    # if not otp or not otp.is_valid:
-    #     return Response({'error': 'Invalid or expired code'}, status=400)
-    # otp.is_used = True
-    # otp.save()
+    # Validate OTP against stored codes
+    otp = OTPCode.objects.filter(email=email, code=code, is_used=False).first()
+    if not otp or not otp.is_valid:
+        return Response(
+            {"error": "Invalid or expired code. Please request a new one."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    otp.is_used = True
+    otp.save()
 
     # Get or create user with properly parsed name
     name_parts = parse_name_from_email(email)
@@ -150,8 +170,11 @@ def verify_otp(request):
         user.is_admin = True
         user.save(update_fields=["is_admin"])
 
-    # Generate JWT tokens
+    # Generate JWT tokens with optional extended lifetime
     refresh = RefreshToken.for_user(user)
+    if remember_me:
+        refresh.set_exp(lifetime=timedelta(days=30))
+        refresh.access_token.set_exp(lifetime=timedelta(days=1))
 
     return Response(
         {

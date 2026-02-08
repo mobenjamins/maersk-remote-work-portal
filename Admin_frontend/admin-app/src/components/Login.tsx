@@ -13,6 +13,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +36,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     setLoading(true);
 
     try {
-      const response = await verifyOTP(email, otp);
+      const response = await verifyOTP(email, otp, rememberMe);
       onLoginSuccess(response.user);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Verification failed');
@@ -146,6 +147,16 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     {error}
                   </div>
                 )}
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-200 text-maersk-blue focus:ring-maersk-blue"
+                  />
+                  <span className="text-xs text-gray-500">Remember me on this device</span>
+                </label>
 
                 <button
                   type="submit"

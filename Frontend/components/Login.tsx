@@ -11,7 +11,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [debugCode, setDebugCode] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,11 +19,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      const response = await login(email);
-      // For MVP, show the debug code
-      if (response.debug_code) {
-        setDebugCode(response.debug_code);
-      }
+      await login(email);
       setStep(2);
     } catch (err: any) {
       setError(err.message || 'Failed to send verification code');
@@ -38,7 +34,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      const response = await verifyOTP(email, code);
+      const response = await verifyOTP(email, code, rememberMe);
       onLogin(response.user);
     } catch (err: any) {
       setError(err.message || 'Verification failed');
@@ -101,16 +97,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         <div>
                             <h2 className="text-lg font-medium text-gray-900">Two-Factor Authentication</h2>
                             <p className="text-sm text-gray-500 mt-1">Enter the code sent to {email}</p>
-                            {debugCode && (
-                              <p className="text-xs text-blue-600 mt-2 p-2 bg-blue-50 rounded">
-                                Demo mode - Use code: <strong className="font-mono">{debugCode}</strong>
-                              </p>
-                            )}
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Security Code</label>
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 required
                                 maxLength={6}
                                 value={code}
@@ -119,16 +110,25 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                 placeholder="------"
                             />
                         </div>
-                        <button 
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                                className="w-4 h-4 rounded border-gray-300 text-[#42b0d5] focus:ring-[#42b0d5]"
+                            />
+                            <span className="text-sm text-gray-600">Remember me on this device</span>
+                        </label>
+                        <button
                             type="submit"
                             disabled={loading}
                             className="w-full bg-[#42b0d5] hover:bg-[#3aa3c7] text-white font-medium py-3 px-4 rounded-sm transition-colors disabled:opacity-50"
                         >
                             {loading ? 'Verifying...' : 'Verify Identity'}
                         </button>
-                        <button 
-                            type="button" 
-                            onClick={() => { setStep(1); setError(''); setDebugCode(''); }}
+                        <button
+                            type="button"
+                            onClick={() => { setStep(1); setError(''); }}
                             className="w-full text-sm text-gray-500 hover:text-gray-800 transition-colors"
                         >
                             Back to Email

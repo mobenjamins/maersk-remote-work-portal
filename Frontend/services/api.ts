@@ -28,7 +28,6 @@ export interface User {
 export interface LoginResponse {
   message: string;
   email: string;
-  debug_code?: string;
 }
 
 export interface AuthResponse {
@@ -122,11 +121,11 @@ export async function login(email: string): Promise<LoginResponse> {
   return response.json();
 }
 
-export async function verifyOTP(email: string, code: string): Promise<AuthResponse> {
+export async function verifyOTP(email: string, code: string, rememberMe: boolean = false): Promise<AuthResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/verify/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, code }),
+    body: JSON.stringify({ email, code, remember_me: rememberMe }),
   });
 
   if (!response.ok) {
