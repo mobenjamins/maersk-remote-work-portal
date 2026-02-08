@@ -224,7 +224,10 @@ async function readPdfText(file: File): Promise<string> {
 
 async function readMsgText(file: File): Promise<string> {
   try {
-    const { default: MsgReader } = await import('@kenjiuno/msgreader');
+    // Dynamic import to avoid build issues
+    const module = await import('@kenjiuno/msgreader');
+    const MsgReader = module.default;
+    
     const arrayBuffer = await file.arrayBuffer();
     const msgReader = new MsgReader(arrayBuffer);
     const fileData = msgReader.getFileData();
@@ -242,10 +245,19 @@ async function readMsgText(file: File): Promise<string> {
 
 async function readEmlText(file: File): Promise<string> {
   try {
-    const { readEml } = await import('eml-parse-js');
     const text = await file.text();
-    const parsed = readEml(text);
+    // Dynamic import for beta package
+    const module = await import('eml-parse-js');
+    const EmlParser = module.default;
+    
+    // Fallback if the module doesn't export a class directly as default
+    if (typeof EmlParser !== 'function') {
+        throw new Error('EmlParser library not loaded correctly');
+    }
 
+    const parser = new EmlParser(text);
+    const parsed = parser.parse();
+    
     // Construct a text representation including headers
     let result = '';
     if (parsed.headers) {
@@ -257,7 +269,7 @@ async function readEmlText(file: File): Promise<string> {
     return result;
   } catch (error) {
     console.error('EML extraction error:', error);
-    // Fallback to raw text if parsing fails
+    // Fallback to raw text if parsing fails (better than nothing for .eml)
     return await file.text();
   }
 }
@@ -285,7 +297,7 @@ export const extractApprovalData = async (file: File): Promise<{ managerName: st
     }
   } catch (error) {
     console.error("Text extraction failed:", error);
-    return { managerName: '', managerEmail: '' };
+    // Continue with empty text to allow fallback
   }
 
   // If text is too short or empty, abort
