@@ -26,8 +26,12 @@ export interface AdminRequest {
   end_date: string;
   duration_days: number;
   status: string;
+  decision_status?: string;
+  flags?: string[];
   decision_reason: string;
   created_at: string;
+  is_exception_request?: boolean;
+  exception_reason?: string;
 }
 
 export interface AdminAnalytics {
@@ -48,3 +52,33 @@ export interface User {
 }
 
 export type RequestStatus = 'approved' | 'rejected' | 'escalated' | 'pending';
+
+export interface PolicyDocument {
+  id: string;
+  doc_type: 'policy' | 'faq';
+  file: string;
+  version: number;
+  status: 'draft' | 'published';
+  notes?: string;
+  uploaded_by_email: string;
+  uploaded_at: string;
+}
+
+export interface MiraQuestion {
+  id: string;
+  user_email: string;
+  question_text: string;
+  answer_text: string;
+  context_country: string;
+  linked_policy_section: string;
+  answered: boolean;
+  created_at: string;
+}
+
+export interface RequestComment {
+  id: string;
+  request: string;
+  author_email: string;
+  body: string;
+  created_at: string;
+}

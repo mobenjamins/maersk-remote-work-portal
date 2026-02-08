@@ -351,6 +351,8 @@ export interface SIRWSubmissionData {
   manager_email: string;
   is_exception_request?: boolean;
   exception_reason?: string;
+  exception_type?: string;
+  requester_comment?: string;
 }
 
 export interface SIRWSubmissionResponse {

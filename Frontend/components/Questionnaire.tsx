@@ -30,7 +30,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     endDate?: string;
   }>({});
 
-  const [formData, setFormData] = useState<RequestFormData & { additionalNotes?: string }>({
+  const [formData, setFormData] = useState<RequestFormData & { additionalNotes?: string; complianceComment?: string }>({
     firstName: '',
     lastName: '',
     homeCountry: '',
@@ -42,6 +42,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     rightToWork: false,
     noRestrictedRoles: false,
     additionalNotes: '',
+    complianceComment: '',
   });
 
   // Safe pre-population
@@ -202,6 +203,13 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
       const managerLastName = nameParts.length > 1 ? nameParts.slice(-1)[0] : '';
       const managerMiddleName = nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : undefined;
 
+      const hasComplianceException = !formData.rightToWork || !formData.noRestrictedRoles;
+      const exceptionType = workdaysSelected > 20 ? 'extended_days'
+        : hasComplianceException ? 'compliance_exception' : undefined;
+
+      const combinedComment = [formData.additionalNotes, formData.complianceComment]
+        .filter(Boolean).join('\n\n');
+
       const response = await submitSIRWRequest({
         destination_country: formData.destinationCountry,
         start_date: formData.startDate,
@@ -212,8 +220,10 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
         manager_last_name: managerLastName,
         manager_middle_name: managerMiddleName,
         manager_email: formData.managerEmail,
-        exception_reason: formData.additionalNotes,
-        is_exception_request: !!formData.additionalNotes
+        exception_reason: combinedComment,
+        requester_comment: combinedComment,
+        exception_type: exceptionType,
+        is_exception_request: !!combinedComment || workdaysSelected > 20 || hasComplianceException
       });
 
       setReferenceNumber(response.reference_number);
@@ -371,7 +381,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                 <div className="pt-6 border-t border-gray-50">
                     <h3 className="text-xl font-light text-gray-900 mb-2">Manager <span className="font-bold">Approval</span></h3>
                     <p className="text-sm text-gray-500 leading-relaxed max-w-lg mb-6">
-                        Please upload your Line Manager's approval email. Our AI will extract the details automatically.
+                        Upload your Line Manager's approval email to auto-fill the details below.
                     </p>
 
                     <div className="border-2 border-dashed border-gray-100 rounded-sm p-8 text-center bg-gray-50/30 hover:border-[#42b0d5] transition-colors group cursor-pointer">
@@ -580,21 +590,56 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       <p className="text-gray-900 font-medium text-sm mt-1 leading-relaxed mb-4">
                         I certify that my current role allows for remote work and does <strong>not</strong> fall under any of the following restricted categories:
                       </p>
-                      <ul className="grid grid-cols-2 gap-3">
+                      <ul className="space-y-3">
                         {[
-                            'Frontline / Customer facing',
-                            'Required on-site',
-                            'Subject to legal restrictions',
-                            'Permanent Establishment risk'
+                            { title: 'Frontline / Customer facing', desc: 'Roles requiring in-person interaction with customers or clients' },
+                            { title: 'Required on-site', desc: 'Roles that must be performed at a specific physical location (e.g. warehouse, terminal, vessel)' },
+                            { title: 'Regulated or licensed role', desc: 'Roles bound by local professional licensing or regulatory requirements that restrict where work can be performed' },
+                            { title: 'Tax exposure risk', desc: 'Roles involving contract negotiation, signing authority, or revenue-generating activities that could create tax obligations for Maersk in the destination country' },
                         ].map((item, i) => (
-                            <li key={i} className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                                <ShieldCheck size={12} className="text-[#0b1e3b]" /> {item}
+                            <li key={i} className="flex items-start gap-2">
+                                <ShieldCheck size={12} className="text-[#0b1e3b] mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">{item.title}</span>
+                                  <p className="text-[11px] text-gray-400 leading-snug mt-0.5">{item.desc}</p>
+                                </div>
                             </li>
                         ))}
                       </ul>
                     </div>
                   </div>
                 </div>
+
+                {/* Compliance comment — required when either box is unticked */}
+                {(!formData.rightToWork || !formData.noRestrictedRoles) && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="bg-amber-50 border border-amber-200 rounded-sm p-5 space-y-3"
+                  >
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle size={14} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-800">
+                          {!formData.rightToWork && !formData.noRestrictedRoles
+                            ? 'You have not confirmed right to work or role eligibility.'
+                            : !formData.rightToWork
+                            ? 'You have not confirmed your right to work in the destination country.'
+                            : 'You have not confirmed your role is eligible for remote work.'}
+                        </p>
+                        <p className="text-xs text-amber-700 mt-1">
+                          You may still submit this request for review. Please explain your circumstances below.
+                        </p>
+                      </div>
+                    </div>
+                    <textarea
+                      value={formData.complianceComment || ''}
+                      onChange={(e) => handleChange('complianceComment', e.target.value)}
+                      className="w-full bg-white border border-amber-300 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none h-20 resize-none"
+                      placeholder="Explain why you are unable to confirm the above (e.g. visa application in progress, pending role transfer)..."
+                    />
+                  </motion.div>
+                )}
               </div>
             )}
           </motion.div>
@@ -625,7 +670,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
         
         <button
           onClick={step === 3 ? handleSubmit : validateAndNext}
-          disabled={loading || (step === 3 && (!formData.rightToWork || !formData.noRestrictedRoles))}
+          disabled={loading || (step === 3 && (!formData.rightToWork || !formData.noRestrictedRoles) && !formData.complianceComment?.trim())}
           className="bg-[#0b1e3b] text-white px-8 py-3 rounded-sm text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed shadow-md shadow-slate-200"
         >
           {loading ? 'Submitting...' : step === 3 ? 'Certify & Submit' : 'Continue'} 

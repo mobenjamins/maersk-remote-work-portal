@@ -107,6 +107,13 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
   const totalRequests = analytics?.total_requests ?? requests.length;
   const approvedCount = analytics?.approved_requests ?? requests.filter(r => r.status === 'approved').length;
   const uniqueCountries = new Set(requests.map(r => r.destinationCountry)).size;
+  const triage = useMemo(() => {
+    return {
+      autoApproved: requests.filter(r => (r as any).decision_status === 'auto_approved' || r.status === 'approved').length,
+      autoRejected: requests.filter(r => (r as any).decision_status === 'auto_rejected' || r.status === 'rejected').length,
+      needsReview: requests.filter(r => (r as any).decision_status === 'needs_review' || r.status === 'escalated' || r.status === 'pending').length,
+    };
+  }, [requests]);
 
   if (loading) {
     return (
@@ -173,6 +180,31 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
             delay={0.3}
           />
         </div>
+      </div>
+
+      {/* Triage widget */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[
+          { label: 'Needs Review', value: triage.needsReview, tone: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
+          { label: 'Auto Approved', value: triage.autoApproved, tone: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
+          { label: 'Auto Rejected', value: triage.autoRejected, tone: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100' },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className={`flex items-center justify-between px-5 py-4 rounded-sm border ${item.border} ${item.bg} shadow-sm`}
+          >
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{item.label}</div>
+              <div className={`text-2xl font-semibold ${item.tone}`}>{item.value}</div>
+            </div>
+            <button
+              onClick={() => setFilterType('kpi')}
+              className="text-[10px] font-bold uppercase tracking-widest text-maersk-blue hover:underline"
+            >
+              View
+            </button>
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

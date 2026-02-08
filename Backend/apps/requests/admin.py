@@ -3,7 +3,14 @@ Admin configuration for requests app.
 """
 
 from django.contrib import admin
-from .models import RemoteWorkRequest, ChatSession, ChatMessage
+from .models import (
+    RemoteWorkRequest,
+    ChatSession,
+    ChatMessage,
+    RequestComment,
+    MiraQuestion,
+    PolicyDocument,
+)
 
 
 @admin.register(RemoteWorkRequest)
@@ -40,6 +47,9 @@ class RemoteWorkRequestAdmin(admin.ModelAdmin):
         "duration_days",
         "created_at",
         "updated_at",
+        "decision_status",
+        "decision_source",
+        "flags",
     ]
 
     fieldsets = (
@@ -90,6 +100,9 @@ class RemoteWorkRequestAdmin(admin.ModelAdmin):
                 "fields": (
                     "decision_reason",
                     "escalation_note",
+                    "decision_status",
+                    "decision_source",
+                    "flags",
                 )
             },
         ),
@@ -152,3 +165,26 @@ class ChatMessageAdmin(admin.ModelAdmin):
         return obj.text[:100] + "..." if len(obj.text) > 100 else obj.text
 
     text_preview.short_description = "Text"
+
+
+@admin.register(RequestComment)
+class RequestCommentAdmin(admin.ModelAdmin):
+    list_display = ["request", "author", "created_at"]
+    search_fields = ["request__reference_number", "author__email", "body"]
+    readonly_fields = ["created_at"]
+
+
+@admin.register(MiraQuestion)
+class MiraQuestionAdmin(admin.ModelAdmin):
+    list_display = ["user", "context_country", "answered", "created_at"]
+    list_filter = ["answered", "context_country"]
+    search_fields = ["user__email", "question_text", "context_country"]
+    readonly_fields = ["created_at"]
+
+
+@admin.register(PolicyDocument)
+class PolicyDocumentAdmin(admin.ModelAdmin):
+    list_display = ["doc_type", "version", "status", "uploaded_by", "uploaded_at"]
+    list_filter = ["doc_type", "status"]
+    search_fields = ["notes", "file"]
+    readonly_fields = ["uploaded_at", "version"]

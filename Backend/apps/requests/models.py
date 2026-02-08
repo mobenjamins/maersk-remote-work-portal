@@ -42,6 +42,15 @@ class RemoteWorkRequest(models.Model):
         SHORT_TERM = "short_term", "Short-Term Remote Work"
         PERMANENT_TRANSFER = "permanent_transfer", "Permanent Transfer"
 
+    class DecisionStatus(models.TextChoices):
+        AUTO_APPROVED = "auto_approved", "Auto Approved"
+        AUTO_REJECTED = "auto_rejected", "Auto Rejected"
+        NEEDS_REVIEW = "needs_review", "Needs Review"
+
+    class DecisionSource(models.TextChoices):
+        AUTO = "auto", "Automated"
+        HUMAN = "human", "Human"
+
     # Identifiers
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     reference_number = models.CharField(max_length=20, unique=True, editable=False)
@@ -123,12 +132,43 @@ class RemoteWorkRequest(models.Model):
         help_text="Reason for requesting an exception to normal limits",
     )
 
+    exception_type = models.CharField(
+        max_length=80,
+        blank=True,
+        help_text="Categorised exception type (e.g. extended_days, sanctioned_country)",
+    )
+
+    requester_comment = models.TextField(
+        blank=True,
+        help_text="Employee-provided context or exception request comment",
+    )
+
+    flags = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Machine-applied policy flags (e.g. exceeds_annual_limit, sanctioned_country)",
+    )
+
     # Outcome
     decision_reason = models.TextField(
         blank=True, help_text="Reason for approval/rejection/escalation"
     )
     escalation_note = models.TextField(
         blank=True, help_text="Additional notes for escalated requests"
+    )
+
+    decision_status = models.CharField(
+        max_length=20,
+        choices=DecisionStatus.choices,
+        default=DecisionStatus.NEEDS_REVIEW,
+        help_text="Triage bucket used by admin portal",
+    )
+
+    decision_source = models.CharField(
+        max_length=10,
+        choices=DecisionSource.choices,
+        default=DecisionSource.AUTO,
+        help_text="Whether current status was set automatically or by a human reviewer",
     )
 
     # Metadata
@@ -237,3 +277,81 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"{self.role}: {self.text[:50]}..."
+
+
+class RequestComment(models.Model):
+    """Threaded comments for admin <-> employee dialogue."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    request = models.ForeignKey(
+        RemoteWorkRequest, on_delete=models.CASCADE, related_name="comments"
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="request_comments"
+    )
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Comment by {self.author.email} on {self.request.reference_number}"
+
+
+class MiraQuestion(models.Model):
+    """Captured questions asked to the Mira assistant."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mira_questions"
+    )
+    question_text = models.TextField()
+    answer_text = models.TextField(blank=True)
+    context_country = models.CharField(max_length=100, blank=True)
+    linked_policy_section = models.CharField(max_length=200, blank=True)
+    answered = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Question by {self.user.email}: {self.question_text[:40]}"
+
+
+class PolicyDocument(models.Model):
+    """Versioned policy and FAQ uploads with draft/publish lifecycle."""
+
+    class DocType(models.TextChoices):
+        POLICY = "policy", "Policy"
+        FAQ = "faq", "FAQ"
+
+    class DocStatus(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PUBLISHED = "published", "Published"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    doc_type = models.CharField(max_length=20, choices=DocType.choices)
+    file = models.FileField(upload_to="policies/%Y/%m/")
+    version = models.PositiveIntegerField(default=1)
+    status = models.CharField(
+        max_length=20, choices=DocStatus.choices, default=DocStatus.DRAFT
+    )
+    notes = models.TextField(blank=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="uploaded_documents"
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-uploaded_at"]
+        unique_together = ("doc_type", "version")
+
+    def __str__(self):
+        return f"{self.doc_type} v{self.version} ({self.status})"
+
+    def publish(self):
+        """Mark this document as the active published version."""
+        self.status = self.DocStatus.PUBLISHED
+        self.save(update_fields=["status"])

@@ -211,40 +211,53 @@ def sirw_wizard_submit(request):
     # Create the request
     instance = serializer.save()
 
+    flags = []
+
     # Determine outcome
     if is_country_blocked(instance.destination_country):
         # Should not happen due to validation, but double-check
         instance.status = "rejected"
+        instance.decision_status = RemoteWorkRequest.DecisionStatus.AUTO_REJECTED
         instance.decision_reason = get_block_message(instance.destination_country)
         outcome = "rejected"
         message = instance.decision_reason
+        flags.append("sanctioned_country")
     elif not instance.has_right_to_work:
         instance.status = "rejected"
+        instance.decision_status = RemoteWorkRequest.DecisionStatus.AUTO_REJECTED
         instance.decision_reason = (
             "SIRW cannot be approved without the legal right to work in the "
             "destination country."
         )
         outcome = "rejected"
         message = instance.decision_reason
+        flags.append("no_right_to_work")
     elif not instance.confirmed_role_eligible:
         instance.status = "rejected"
+        instance.decision_status = RemoteWorkRequest.DecisionStatus.AUTO_REJECTED
         instance.decision_reason = (
             "Your role category is not eligible for SIRW according to company policy."
         )
         outcome = "rejected"
         message = instance.decision_reason
+        flags.append("role_ineligible")
     elif is_exception or would_exceed_annual or exceeds_consecutive:
         # Route to pending review
         instance.status = "escalated"
+        instance.decision_status = RemoteWorkRequest.DecisionStatus.NEEDS_REVIEW
         reasons = []
         if would_exceed_annual:
             reasons.append(
                 f"would exceed annual limit ({days_used} + {request_days} = {days_used + request_days} days)"
             )
+            flags.append("exceeds_annual_limit")
         if exceeds_consecutive:
             reasons.append(f"exceeds {max_consecutive}-day consecutive limit")
+            flags.append("exceeds_consecutive_limit")
         if is_exception:
             reasons.append("exception requested")
+            if instance.exception_type:
+                flags.append(f"exception:{instance.exception_type}")
 
         instance.decision_reason = (
             f"Request requires Global Mobility review: {', '.join(reasons)}. "
@@ -263,6 +276,7 @@ def sirw_wizard_submit(request):
     else:
         # Auto-approve
         instance.status = "approved"
+        instance.decision_status = RemoteWorkRequest.DecisionStatus.AUTO_APPROVED
         instance.decision_reason = (
             f"All compliance checks passed. SIRW to {instance.destination_country} "
             f"for {request_days} workdays is approved."
@@ -273,6 +287,8 @@ def sirw_wizard_submit(request):
             f"workdays has been approved. A confirmation email has been sent."
         )
 
+    instance.decision_source = RemoteWorkRequest.DecisionSource.AUTO
+    instance.flags = flags
     instance.save()
 
     logger.info(

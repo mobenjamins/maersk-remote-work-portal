@@ -31,8 +31,12 @@ export interface AdminRequest {
   end_date: string;
   duration_days: number;
   status: string;
+  decision_status?: string;
+  flags?: string[];
   decision_reason: string;
   created_at: string;
+  is_exception_request?: boolean;
+  exception_reason?: string;
 }
 
 export interface AdminAnalytics {
@@ -166,9 +170,11 @@ export async function getAdminRequests(filters?: {
   start_date?: string;
   end_date?: string;
   search?: string;
+  decision_status?: string;
 }): Promise<AdminRequest[]> {
   const params = new URLSearchParams();
   if (filters?.status) params.append('status', filters.status);
+  if (filters?.decision_status) params.append('decision_status', filters.decision_status);
   if (filters?.country) params.append('country', filters.country);
   if (filters?.start_date) params.append('start_date', filters.start_date);
   if (filters?.end_date) params.append('end_date', filters.end_date);
@@ -204,6 +210,96 @@ export async function getAdminUsers(filters?: {
 export async function getAdminUser(id: number): Promise<AdminUser> {
   const response = await fetchWithAuth(`/admin/users/${id}/`);
   if (!response.ok) throw new Error('Failed to get user');
+  return response.json();
+}
+
+// Policy documents
+export interface PolicyDocument {
+  id: string;
+  doc_type: 'policy' | 'faq';
+  file: string;
+  version: number;
+  status: 'draft' | 'published';
+  notes?: string;
+  uploaded_by_email: string;
+  uploaded_at: string;
+}
+
+export async function listPolicyDocuments(docType?: 'policy' | 'faq'): Promise<PolicyDocument[]> {
+  const params = docType ? `?doc_type=${docType}` : '';
+  const response = await fetchWithAuth(`/admin/policies/${params}`);
+  if (!response.ok) throw new Error('Failed to fetch policy documents');
+  const data = await response.json();
+  return data.results || data;
+}
+
+export async function uploadPolicyDocument(docType: 'policy' | 'faq', file: File, notes?: string): Promise<PolicyDocument> {
+  const formData = new FormData();
+  formData.append('doc_type', docType);
+  formData.append('file', file);
+  if (notes) formData.append('notes', notes);
+
+  const headers: HeadersInit = {};
+  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+
+  const response = await fetch(`${API_BASE_URL}/admin/policies/`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  if (!response.ok) throw new Error('Failed to upload document');
+  return response.json();
+}
+
+export async function publishPolicyDocument(id: string): Promise<PolicyDocument> {
+  const response = await fetchWithAuth(`/admin/policies/${id}/publish/`, {
+    method: 'POST',
+  });
+  if (!response.ok) throw new Error('Failed to publish document');
+  return response.json();
+}
+
+// Mira questions
+export interface MiraQuestion {
+  id: string;
+  user_email: string;
+  question_text: string;
+  answer_text: string;
+  context_country: string;
+  linked_policy_section: string;
+  answered: boolean;
+  created_at: string;
+}
+
+export async function listMiraQuestions(): Promise<MiraQuestion[]> {
+  const response = await fetchWithAuth('/admin/mira-questions/');
+  if (!response.ok) throw new Error('Failed to fetch Mira questions');
+  const data = await response.json();
+  return data.results || data;
+}
+
+// Request comments
+export interface RequestComment {
+  id: string;
+  request: string;
+  author_email: string;
+  body: string;
+  created_at: string;
+}
+
+export async function listRequestComments(requestId: string): Promise<RequestComment[]> {
+  const response = await fetchWithAuth(`/admin/request-comments/?request=${requestId}`);
+  if (!response.ok) throw new Error('Failed to fetch comments');
+  const data = await response.json();
+  return data.results || data;
+}
+
+export async function addRequestComment(requestId: string, body: string): Promise<RequestComment> {
+  const response = await fetchWithAuth('/admin/request-comments/', {
+    method: 'POST',
+    body: JSON.stringify({ request: requestId, body }),
+  });
+  if (!response.ok) throw new Error('Failed to add comment');
   return response.json();
 }
 

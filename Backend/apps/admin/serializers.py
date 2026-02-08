@@ -4,7 +4,12 @@ Serializers for admin portal endpoints.
 
 from rest_framework import serializers
 from apps.users.models import User
-from apps.requests.models import RemoteWorkRequest
+from apps.requests.models import (
+    RemoteWorkRequest,
+    PolicyDocument,
+    MiraQuestion,
+    RequestComment,
+)
 
 
 class AdminUserSerializer(serializers.ModelSerializer):
@@ -46,7 +51,11 @@ class AdminRequestListSerializer(serializers.ModelSerializer):
             "end_date",
             "duration_days",
             "status",
+            "decision_status",
             "decision_reason",
+            "flags",
+            "is_exception_request",
+            "exception_reason",
             "created_at",
         ]
         read_only_fields = fields
@@ -67,3 +76,54 @@ class AdminAnalyticsSerializer(serializers.Serializer):
     escalated_requests = serializers.IntegerField()
     total_users = serializers.IntegerField()
     approval_rate = serializers.FloatField()
+
+
+class PolicyDocumentSerializer(serializers.ModelSerializer):
+    uploaded_by_email = serializers.EmailField(source="uploaded_by.email", read_only=True)
+
+    class Meta:
+        model = PolicyDocument
+        fields = [
+            "id",
+            "doc_type",
+            "file",
+            "version",
+            "status",
+            "notes",
+            "uploaded_by_email",
+            "uploaded_at",
+        ]
+        read_only_fields = ["id", "version", "uploaded_by_email", "uploaded_at", "status"]
+
+
+class MiraQuestionSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source="user.email", read_only=True)
+
+    class Meta:
+        model = MiraQuestion
+        fields = [
+            "id",
+            "user_email",
+            "question_text",
+            "answer_text",
+            "context_country",
+            "linked_policy_section",
+            "answered",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class RequestCommentSerializer(serializers.ModelSerializer):
+    author_email = serializers.EmailField(source="author.email", read_only=True)
+
+    class Meta:
+        model = RequestComment
+        fields = [
+            "id",
+            "request",
+            "author_email",
+            "body",
+            "created_at",
+        ]
+        read_only_fields = ["id", "author_email", "created_at"]

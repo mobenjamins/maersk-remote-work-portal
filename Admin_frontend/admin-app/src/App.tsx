@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, FileText, BrainCircuit, ShieldAlert, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, FileText, BrainCircuit, ShieldAlert, LogOut, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { initAuth, isAuthenticated, logout, type User } from './services/api';
 import Login from './components/Login';
@@ -7,6 +7,7 @@ import OverviewDashboard from './components/OverviewDashboard';
 import RequestManager from './components/RequestManager';
 import IntelligenceHub from './components/IntelligenceHub';
 import PolicyEditor from './components/PolicyEditor';
+import QuestionsExceptions from './components/QuestionsExceptions';
 import './index.css';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'requests', label: 'Request Manager', icon: FileText },
+    { id: 'questions', label: 'Questions & Exceptions', icon: MessageSquare },
     { id: 'intelligence', label: 'Intelligence Hub', icon: BrainCircuit },
     { id: 'policy', label: 'Policy Governance', icon: ShieldAlert },
   ];
@@ -193,6 +195,7 @@ function App() {
             >
               {activeTab === 'overview' && <OverviewDashboard setActiveTab={setActiveTab} />}
               {activeTab === 'requests' && <RequestManager />}
+              {activeTab === 'questions' && <QuestionsExceptions />}
               {activeTab === 'intelligence' && <IntelligenceHub />}
               {activeTab === 'policy' && <PolicyEditor />}
             </motion.div>

@@ -156,6 +156,7 @@ const RequestManager = () => {
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Dates</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Sentiment</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Status</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Triage</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest"></th>
               </tr>
             </thead>
@@ -220,6 +221,11 @@ const RequestManager = () => {
                         {getStatusIcon(req.status)}
                         {req.status}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">
+                        {(req as any).decision_status || '—'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button className="p-1 hover:bg-gray-200 rounded-sm transition-colors text-gray-400 group-hover:text-gray-700">

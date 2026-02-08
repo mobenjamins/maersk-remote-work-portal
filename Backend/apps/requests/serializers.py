@@ -13,6 +13,7 @@ class RemoteWorkRequestSerializer(serializers.ModelSerializer):
 
     user_email = serializers.EmailField(source="user.email", read_only=True)
     manager_full_name = serializers.CharField(read_only=True)
+    flags = serializers.ListField(child=serializers.CharField(), required=False)
 
     class Meta:
         model = RemoteWorkRequest
@@ -22,6 +23,8 @@ class RemoteWorkRequestSerializer(serializers.ModelSerializer):
             "user_email",
             "request_type",
             "status",
+            "decision_status",
+            "decision_source",
             "maersk_entity",
             "home_country",
             "destination_country",
@@ -39,6 +42,9 @@ class RemoteWorkRequestSerializer(serializers.ModelSerializer):
             "manager_approval_document",
             "is_exception_request",
             "exception_reason",
+            "exception_type",
+            "requester_comment",
+            "flags",
             "decision_reason",
             "escalation_note",
             "created_at",
@@ -50,6 +56,8 @@ class RemoteWorkRequestSerializer(serializers.ModelSerializer):
             "user_email",
             "duration_days",
             "manager_full_name",
+            "decision_status",
+            "decision_source",
             "decision_reason",
             "escalation_note",
             "created_at",
@@ -116,6 +124,8 @@ class SIRWWizardRequestSerializer(serializers.ModelSerializer):
             "manager_approval_document",
             "is_exception_request",
             "exception_reason",
+            "exception_type",
+            "requester_comment",
         ]
 
     def validate_destination_country(self, value):

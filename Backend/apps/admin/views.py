@@ -11,12 +11,20 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from drf_spectacular.utils import extend_schema
 
 from apps.users.models import User
-from apps.requests.models import RemoteWorkRequest
+from apps.requests.models import (
+    RemoteWorkRequest,
+    PolicyDocument,
+    MiraQuestion,
+    RequestComment,
+)
 from common.permissions import IsAdminUser
 from .serializers import (
     AdminUserSerializer,
     AdminRequestListSerializer,
     AdminAnalyticsSerializer,
+    PolicyDocumentSerializer,
+    MiraQuestionSerializer,
+    RequestCommentSerializer,
 )
 
 
@@ -82,6 +90,10 @@ class AdminRequestViewSet(viewsets.ReadOnlyModelViewSet):
         if status_filter:
             queryset = queryset.filter(status=status_filter)
 
+        decision_status = self.request.query_params.get("decision_status")
+        if decision_status:
+            queryset = queryset.filter(decision_status=decision_status)
+
         # Filter by country if provided
         country_filter = self.request.query_params.get("country")
         if country_filter:
@@ -112,6 +124,78 @@ class AdminRequestViewSet(viewsets.ReadOnlyModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         """Get details of a specific request."""
         return super().retrieve(request, *args, **kwargs)
+
+
+class PolicyDocumentViewSet(viewsets.ModelViewSet):
+    """
+    Upload and publish policy/FAQ documents with versioning.
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = PolicyDocumentSerializer
+    queryset = PolicyDocument.objects.all()
+    http_method_names = ["get", "post", "patch", "head", "options"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        doc_type = self.request.query_params.get("doc_type")
+        if doc_type:
+            qs = qs.filter(doc_type=doc_type)
+        return qs
+
+    def perform_create(self, serializer):
+        # auto-increment version per doc_type
+        doc_type = serializer.validated_data["doc_type"]
+        latest = (
+            PolicyDocument.objects.filter(doc_type=doc_type)
+            .order_by("-version")
+            .first()
+        )
+        next_version = (latest.version + 1) if latest else 1
+        serializer.save(uploaded_by=self.request.user, version=next_version)
+
+    @action(detail=True, methods=["post"])
+    def publish(self, request, pk=None):
+        doc = self.get_object()
+        # Mark all other docs of same type as draft
+        PolicyDocument.objects.filter(doc_type=doc.doc_type).update(status="draft")
+        doc.publish()
+        return Response(self.get_serializer(doc).data)
+
+
+class MiraQuestionViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only view for Mira Q&A asked by employees.
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = MiraQuestionSerializer
+    queryset = MiraQuestion.objects.select_related("user").all()
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["question_text", "user__email", "context_country"]
+    ordering_fields = ["created_at"]
+    ordering = ["-created_at"]
+
+
+class RequestCommentViewSet(viewsets.ModelViewSet):
+    """
+    Comments thread per request (admin + employee).
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = RequestCommentSerializer
+    queryset = RequestComment.objects.select_related("author", "request").all()
+    http_method_names = ["get", "post", "head", "options"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        request_id = self.request.query_params.get("request")
+        if request_id:
+            queryset = queryset.filter(request_id=request_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
 
 
 class AdminUserViewSet(viewsets.ReadOnlyModelViewSet):
