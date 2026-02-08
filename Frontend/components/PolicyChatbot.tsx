@@ -7,6 +7,7 @@ interface PolicyChatbotProps {
   isOpen: boolean;
   onClose: () => void;
   formData?: RequestFormData;
+  currentStep?: number; // 1 = Profile & Approval, 2 = Trip Details, 3 = Compliance Check
 }
 
 interface Message {
@@ -14,7 +15,28 @@ interface Message {
   text: string;
 }
 
-export const PolicyChatbot: React.FC<PolicyChatbotProps> = ({ isOpen, onClose, formData }) => {
+// Quick-action chips that change based on the current wizard step
+const STEP_SUGGESTIONS: Record<number, string[]> = {
+  1: ["What documents do I need?", "Who can approve my request?"],
+  2: ["Which countries are blocked?", "How many days can I take?"],
+  3: ["Explain 'Right to Work'", "Why are these roles restricted?"],
+};
+
+const DEFAULT_SUGGESTIONS = ["Explain 'Right to Work'", "How many days can I take?"];
+
+// Strip PII from form data before passing to AI
+const sanitiseFormData = (formData: RequestFormData): Record<string, any> => {
+  return {
+    homeCountry: formData.homeCountry || undefined,
+    destinationCountry: formData.destinationCountry || undefined,
+    startDate: formData.startDate || undefined,
+    endDate: formData.endDate || undefined,
+    rightToWork: formData.rightToWork,
+    noRestrictedRoles: formData.noRestrictedRoles,
+  };
+};
+
+export const PolicyChatbot: React.FC<PolicyChatbotProps> = ({ isOpen, onClose, formData, currentStep }) => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -41,6 +63,10 @@ export const PolicyChatbot: React.FC<PolicyChatbotProps> = ({ isOpen, onClose, f
     setMessages(prev => [...prev, { role: 'user', text: textToSend }]);
     setIsThinking(true);
 
+    // Build context string from sanitised form data
+    const stepName = currentStep === 1 ? 'Profile & Approval' : currentStep === 2 ? 'Trip Details' : currentStep === 3 ? 'Compliance Check' : 'Unknown';
+    const safeData = formData ? sanitiseFormData(formData) : {};
+
     let responseText = '';
     try {
       let activeSessionId = sessionId;
@@ -52,14 +78,14 @@ export const PolicyChatbot: React.FC<PolicyChatbotProps> = ({ isOpen, onClose, f
       const response = await sendChatMessage(textToSend, activeSessionId);
       responseText = response.text || "I couldn't find an answer to that in the policy.";
     } catch (error) {
-      responseText = await askPolicyQuestion(textToSend, "Smart Wizard", formData || {});
+      responseText = await askPolicyQuestion(textToSend, stepName, safeData);
     }
 
     setIsThinking(false);
     setMessages(prev => [...prev, { role: 'assistant', text: responseText }]);
   };
 
-  const suggestions = ["What fields are mandatory?", "Explain 'Right to Work'", "List restricted roles"];
+  const suggestions = STEP_SUGGESTIONS[currentStep || 0] || DEFAULT_SUGGESTIONS;
 
   return (
     <div className="w-full h-full flex flex-col bg-white">
@@ -73,7 +99,7 @@ export const PolicyChatbot: React.FC<PolicyChatbotProps> = ({ isOpen, onClose, f
           </div>
           <div>
             <h3 className="font-bold text-sm tracking-wide">Policy Assistant</h3>
-            <p className="text-[10px] text-blue-50 font-medium opacity-90">Smart Wizard</p>
+            <p className="text-[10px] text-blue-50 font-medium opacity-90">Ask questions about the SIRW policy</p>
           </div>
         </div>
         <button
@@ -111,7 +137,7 @@ export const PolicyChatbot: React.FC<PolicyChatbotProps> = ({ isOpen, onClose, f
         )}
       </div>
 
-      {/* Suggestion Chips */}
+      {/* Suggestion Chips — change per step */}
       <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 flex gap-2 overflow-x-auto shrink-0">
         {suggestions.map((s) => (
           <button

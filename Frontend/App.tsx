@@ -14,6 +14,7 @@ const App: React.FC = () => {
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [currentFormData, setCurrentFormData] = useState<RequestFormData | undefined>(undefined);
+  const [currentWizardStep, setCurrentWizardStep] = useState(1);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
 
   useEffect(() => {
@@ -82,7 +83,7 @@ const App: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 {/* Left Panel: Questionnaire */}
                 <div className="lg:col-span-8">
-                  <Questionnaire user={user} onDataChange={setCurrentFormData} />
+                  <Questionnaire user={user} onDataChange={setCurrentFormData} onStepChange={setCurrentWizardStep} />
                 </div>
 
                 {/* Right Panel: 3D Flip Card */}
@@ -153,6 +154,7 @@ const App: React.FC = () => {
                           isOpen={isChatbotOpen}
                           onClose={() => setIsChatbotOpen(false)}
                           formData={currentFormData}
+                          currentStep={currentWizardStep}
                         />
                       </div>
                     </div>

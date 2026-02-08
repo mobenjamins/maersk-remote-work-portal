@@ -9,9 +9,10 @@ import { CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 interface QuestionnaireProps {
   user?: User | null;
   onDataChange?: (data: RequestFormData) => void;
+  onStepChange?: (step: number) => void;
 }
 
-export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange }) => {
+export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange, onStepChange }) => {
   const [step, setStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<'idle' | 'approved' | 'rejected' | 'escalated'>('idle');
@@ -60,6 +61,13 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
       onDataChange(formData);
     }
   }, [formData, onDataChange]);
+
+  // Propagate step changes to parent (for PolicyChatbot chips)
+  useEffect(() => {
+    if (onStepChange) {
+      onStepChange(step);
+    }
+  }, [step, onStepChange]);
 
   const isWorkday = (date: Date) => date.getDay() !== 0 && date.getDay() !== 6;
 
@@ -224,7 +232,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
 
   const maxDate = getMaxEndDate();
   const workdaysSelected = countWorkdays(formData.startDate, formData.endDate);
-  const showDurationWarning = workdaysSelected > 14 && workdaysSelected <= 20;
+  const showDurationWarning = false; // Removed: 14-day rule is not in the policy
   const dateOrderError = formData.startDate && formData.endDate && new Date(formData.endDate) < new Date(formData.startDate)
     ? 'End date must be after the start date.'
     : '';
@@ -464,20 +472,15 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       value={formData.endDate}
                     />
                     <p className="text-xs text-gray-500 mt-1">Policy limit: maximum 20 workdays per calendar year (Section 4.1.2).</p>
-                    {showDurationWarning && (
-                      <p className="text-xs text-amber-600 mt-1">
-                        Heads up: trips longer than 14 workdays may need extra review, even if they are under 20.
+                    {workdaysSelected > 0 && workdaysSelected <= 20 && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        You've used {workdaysSelected} of your 20 remote workdays for {new Date().getFullYear()}. You have {20 - workdaysSelected} days remaining.
                       </p>
                     )}
                     {workdaysSelected > 20 && (
-                      <p className="text-xs text-red-600 mt-1">This exceeds the 20-workday limit.</p>
+                      <p className="text-xs text-red-600 mt-1">This exceeds the 20-workday annual limit.</p>
                     )}
-                    {isCheckingOverlap && (
-                      <p className="text-xs text-gray-500 mt-1">Checking for overlapping requests...</p>
-                    )}
-                    {overlapWarning && !isCheckingOverlap && (
-                      <p className="text-xs text-amber-600 mt-1">{overlapWarning}</p>
-                    )}
+                    {/* Back-to-back overlap warnings removed — not in policy */}
                     {validationErrors.endDate && (
                       <p className="text-xs text-red-600 mt-2">{validationErrors.endDate}</p>
                     )}
