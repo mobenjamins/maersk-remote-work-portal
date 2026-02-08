@@ -342,7 +342,7 @@ ${content.substring(0, 3000)}
 Respond with ONLY the JSON object, no other text.`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3-flash-preview',
         contents: prompt,
       });
 

@@ -380,6 +380,14 @@ flake8 Backend/
 
 ---
 
+## Browser Automation (CRITICAL)
+
+- **ALWAYS use Claude in Chrome** (mcp__claude-in-chrome__*) to carry out any manual tasks that involve web dashboards, deployment platforms (Railway, GitHub Pages, Vercel, etc.), or any browser-based configuration
+- NEVER list manual steps for the user to do themselves if Chrome browser automation tools are available
+- This includes: creating databases, configuring environment variables, enabling features, clicking deploy buttons, navigating settings pages, etc.
+
+---
+
 ## Language & Style
 
 - **British English**: organisation, authorise, colour (not American variants)

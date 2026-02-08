@@ -14,6 +14,19 @@ A full-stack remote work compliance portal for Maersk employees. The system eval
 
 ---
 
+## AI Model Strategy (February 2026 Decision)
+
+**Primary Model**: `gemini-3-flash-preview`
+**Rationale**: 
+- **Performance**: 3x faster than Gemini 2.5 Pro with superior reasoning (90.4% on GPQA Diamond).
+- **Longevity**: Replaces the deprecated Gemini 2.0 Flash (shutting down March 31, 2026).
+- **Efficiency**: 30% more token efficient for complex policy analysis and extraction tasks.
+- **Context**: 1M+ token window allows processing of full policy documents without chunking.
+
+**Important**: Do not revert to 2.0 or 2.5 without explicit architectural review. All extraction and chat services are optimized for Gemini 3's reasoning modulation.
+
+---
+
 ## Build & Development Commands
 
 ### Backend (Django)

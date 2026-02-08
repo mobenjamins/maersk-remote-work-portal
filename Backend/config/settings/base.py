@@ -126,7 +126,7 @@ SPECTACULAR_SETTINGS = {
 
 # Gemini AI Configuration
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-3-flash-preview"
 
 # Remote Work Policy Configuration (based on SIRW Policy V3)
 REMOTE_WORK_SETTINGS = {
