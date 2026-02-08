@@ -37,25 +37,35 @@ const AnimatedCounter = ({ value, duration = 1.5 }: { value: number, duration?: 
   return <motion.span>{display}</motion.span>;
 };
 
-const KPICard = ({ label, value, subtext, icon: Icon, color, delay }: any) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.4, delay }}
-    className="bg-white border border-gray-100 p-5 rounded-sm shadow-sm hover:shadow-md transition-shadow group relative overflow-hidden"
-  >
-    <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity text-${color}-600`}>
-        <Icon size={40} />
-    </div>
-    <div className="relative z-10">
-        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</div>
-        <div className="text-3xl font-light text-gray-900 tracking-tight flex items-baseline gap-1">
-            {value}
-        </div>
-        <div className={`text-xs font-medium mt-1 text-${color}-600`}>{subtext}</div>
-    </div>
-  </motion.div>
-);
+const KPICard = ({ label, value, subtext, icon: Icon, color, delay }: any) => {
+  const colorMap: any = {
+    blue: 'text-blue-600',
+    emerald: 'text-emerald-600',
+    cyan: 'text-cyan-600',
+    amber: 'text-amber-600',
+  };
+  const textColor = colorMap[color] || 'text-gray-600';
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay }}
+      className="bg-white border border-gray-100 p-5 rounded-sm shadow-sm hover:shadow-md transition-shadow group relative overflow-hidden"
+    >
+      <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity ${textColor}`}>
+          <Icon size={40} />
+      </div>
+      <div className="relative z-10">
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</div>
+          <div className="text-3xl font-light text-gray-900 tracking-tight flex items-baseline gap-1">
+              {value}
+          </div>
+          <div className={`text-xs font-medium mt-1 ${textColor}`}>{subtext}</div>
+      </div>
+    </motion.div>
+  );
+};
 
 const StatusPill = ({ status }: { status: string }) => {
     const config = {
