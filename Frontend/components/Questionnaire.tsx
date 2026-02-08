@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, submitSIRWRequest, checkDateOverlap, getSIRWAnnualBalance, AnnualBalanceResponse } from '../services/api';
-import { extractApprovalData } from '../services/geminiService'; // Client-Side Extraction
+import { User, submitSIRWRequest, checkDateOverlap, getSIRWAnnualBalance, AnnualBalanceResponse, extractApprovalFromFile } from '../services/api';
 import { RequestFormData } from '../types';
 import { CountryAutocomplete } from './CountryAutocomplete';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -133,7 +132,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
       setUploadError('');
 
       try {
-        const data = await extractApprovalData(file); // Client-side extraction
+        const data = await extractApprovalFromFile(file);
         
         setFormData(prev => {
             const newData = { ...prev };
