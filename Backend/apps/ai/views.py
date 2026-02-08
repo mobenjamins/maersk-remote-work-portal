@@ -4,12 +4,18 @@ Views for AI chat endpoints.
 
 import logging
 import uuid
+import email
+import re
+from email import policy as email_policy
 
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
+
+from django.conf import settings
 
 from .gemini_service import get_gemini_service, ask_policy_question
 from .serializers import (
@@ -227,3 +233,194 @@ def policy_chat(request):
     text = ask_policy_question(question, current_context, form_data)
 
     return Response({"text": text})
+
+
+# --- File-based extraction helpers ---
+
+def _extract_text_from_pdf(file_bytes: bytes) -> str:
+    """Extract text from a PDF file using PyPDF2."""
+    import PyPDF2
+    import io
+
+    reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
+    pages = []
+    for page in reader.pages:
+        text = page.extract_text()
+        if text:
+            pages.append(text)
+    return "\n".join(pages)
+
+
+def _extract_text_from_msg(file_bytes: bytes) -> str:
+    """Extract text from a .msg (Outlook) file using extract-msg."""
+    import extract_msg
+    import io
+    import tempfile
+    import os
+
+    # extract-msg requires a file path, so write to a temp file
+    with tempfile.NamedTemporaryFile(suffix=".msg", delete=False) as tmp:
+        tmp.write(file_bytes)
+        tmp_path = tmp.name
+
+    try:
+        msg = extract_msg.Message(tmp_path)
+        parts = []
+        if msg.sender:
+            parts.append(f"From: {msg.sender}")
+        if msg.to:
+            parts.append(f"To: {msg.to}")
+        if msg.subject:
+            parts.append(f"Subject: {msg.subject}")
+        parts.append("")
+        if msg.body:
+            parts.append(msg.body)
+        msg.close()
+        return "\n".join(parts)
+    finally:
+        os.unlink(tmp_path)
+
+
+def _extract_text_from_eml(file_bytes: bytes) -> str:
+    """Extract text from a .eml file using Python stdlib email module."""
+    msg = email.message_from_bytes(file_bytes, policy=email_policy.default)
+    parts = []
+
+    # Headers
+    for header in ("From", "To", "Subject"):
+        val = msg.get(header)
+        if val:
+            parts.append(f"{header}: {val}")
+    parts.append("")
+
+    # Body
+    body = msg.get_body(preferencelist=("plain", "html"))
+    if body:
+        content = body.get_content()
+        if content:
+            parts.append(content)
+    else:
+        # Fallback: decode raw payload
+        payload = msg.get_payload(decode=True)
+        if payload:
+            parts.append(payload.decode("utf-8", errors="replace"))
+
+    return "\n".join(parts)
+
+
+def _call_gemini_for_extraction(extracted_text: str) -> dict:
+    """Send extracted text to Gemini and ask it to identify the manager."""
+    try:
+        import google.generativeai as genai
+
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        model = genai.GenerativeModel(model_name=settings.GEMINI_MODEL)
+
+        prompt = (
+            "Analyse this email/document text and identify the SENDER "
+            "(the manager who sent the approval).\n\n"
+            f"TEXT CONTENT:\n{extracted_text[:10000]}\n\n"
+            "INSTRUCTIONS:\n"
+            "1. Extract the Sender's Full Name.\n"
+            "2. Extract the Sender's Email Address.\n"
+            '3. Return JSON ONLY: { "managerName": "...", "managerEmail": "..." }\n'
+            "4. If not found, use empty strings."
+        )
+
+        response = model.generate_content(
+            prompt,
+            generation_config={"response_mime_type": "application/json"},
+        )
+
+        import json
+        text = response.text
+        if text:
+            parsed = json.loads(text)
+            return {
+                "manager_name": parsed.get("managerName", ""),
+                "manager_email": parsed.get("managerEmail", ""),
+            }
+    except Exception as e:
+        logger.error(f"Gemini extraction failed: {e}")
+
+    return {"manager_name": "", "manager_email": ""}
+
+
+def _regex_fallback(extracted_text: str) -> dict:
+    """Simple regex fallback if Gemini is unavailable."""
+    email_match = re.search(
+        r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", extracted_text
+    )
+    return {
+        "manager_name": "",
+        "manager_email": email_match.group(0) if email_match else "",
+    }
+
+
+@extend_schema(
+    request={"multipart/form-data": {"type": "object", "properties": {"file": {"type": "string", "format": "binary"}}}},
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "manager_name": {"type": "string"},
+                "manager_email": {"type": "string"},
+            },
+        }
+    },
+    tags=["AI Chat"],
+)
+@api_view(["POST"])
+@parser_classes([MultiPartParser])
+@permission_classes([IsAuthenticated])
+def extract_approval(request):
+    """
+    Extract manager name and email from an uploaded approval file.
+
+    Accepts .pdf, .msg, .eml, or .txt files. Parses the text server-side
+    and uses Gemini for entity extraction.
+    """
+    uploaded = request.FILES.get("file")
+    if not uploaded:
+        return Response(
+            {"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    file_bytes = uploaded.read()
+    filename = uploaded.name.lower()
+    extracted_text = ""
+
+    try:
+        if filename.endswith(".pdf"):
+            extracted_text = _extract_text_from_pdf(file_bytes)
+        elif filename.endswith(".msg"):
+            extracted_text = _extract_text_from_msg(file_bytes)
+        elif filename.endswith(".eml"):
+            extracted_text = _extract_text_from_eml(file_bytes)
+        elif filename.endswith(".txt"):
+            extracted_text = file_bytes.decode("utf-8", errors="replace")
+        else:
+            return Response(
+                {"error": "Unsupported file type. Please upload .pdf, .msg, .eml, or .txt."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+    except Exception as e:
+        logger.error(f"File text extraction failed: {e}")
+        return Response(
+            {"manager_name": "", "manager_email": ""},
+            status=status.HTTP_200_OK,
+        )
+
+    if not extracted_text or len(extracted_text.strip()) < 10:
+        return Response(
+            {"manager_name": "", "manager_email": ""},
+            status=status.HTTP_200_OK,
+        )
+
+    # Try Gemini, fall back to regex
+    if getattr(settings, "GEMINI_API_KEY", None):
+        result = _call_gemini_for_extraction(extracted_text)
+    else:
+        result = _regex_fallback(extracted_text)
+
+    return Response(result, status=status.HTTP_200_OK)

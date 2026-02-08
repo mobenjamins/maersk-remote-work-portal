@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { extractApprovalData } from '../services/geminiService';
+import { extractApprovalFromFile } from '../services/api';
 
 interface RequestWizardProps {
   userEmail?: string;
@@ -62,7 +62,7 @@ export const ChatInterface: React.FC<RequestWizardProps> = ({ userEmail, onDataC
       
       try {
         // Call Gemini to simulate extraction
-        const data = await extractApprovalData(file.name);
+        const data = await extractApprovalFromFile(file);
         
         setFormData(prev => ({
           ...prev,

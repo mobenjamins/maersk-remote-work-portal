@@ -15,4 +15,5 @@ urlpatterns = [
         name="ai-delete-session",
     ),
     path("policy-chat/", views.policy_chat, name="ai-policy-chat"),
+    path("extract-approval/", views.extract_approval, name="ai-extract-approval"),
 ]

@@ -257,6 +257,46 @@ export async function policyChat(question: string, currentContext: string, formD
   return data.text;
 }
 
+/**
+ * Extract manager name and email from an uploaded approval file.
+ * Sends file to the backend which handles parsing + Gemini extraction.
+ */
+export async function extractApprovalFromFile(file: File): Promise<{ managerName: string; managerEmail: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const headers: HeadersInit = {};
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+  // Do NOT set Content-Type — browser will set multipart boundary automatically
+
+  const response = await fetch(`${API_BASE_URL}/ai/extract-approval/`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (response.status === 401) {
+    accessToken = null;
+    refreshToken = null;
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    window.dispatchEvent(new Event('auth:expired'));
+    throw new Error('Authentication expired');
+  }
+
+  if (!response.ok) {
+    throw new Error('File extraction failed');
+  }
+
+  const data = await response.json();
+  return {
+    managerName: data.manager_name || '',
+    managerEmail: data.manager_email || '',
+  };
+}
+
 // Check if user is authenticated
 export function isAuthenticated(): boolean {
   return !!accessToken;

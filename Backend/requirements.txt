@@ -23,6 +23,8 @@ django-debug-toolbar>=4.2,<5.0
 
 # File handling
 Pillow>=9.0,<11.0
+PyPDF2>=3.0,<4.0
+extract-msg>=0.48,<1.0
 
 # Email (SendGrid HTTP API — SMTP ports blocked on Railway)
 sendgrid>=6.11,<7.0

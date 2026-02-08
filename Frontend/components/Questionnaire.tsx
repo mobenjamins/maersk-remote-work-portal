@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, submitSIRWRequest, checkDateOverlap } from '../services/api';
+import { User, submitSIRWRequest, checkDateOverlap, getSIRWAnnualBalance, extractApprovalFromFile, AnnualBalanceResponse } from '../services/api';
 import { RequestFormData } from '../types';
-import { extractApprovalData } from '../services/geminiService';
 import { CountryAutocomplete } from './CountryAutocomplete';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, AlertCircle, XCircle } from 'lucide-react';
@@ -22,6 +21,8 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
   const [isCheckingOverlap, setIsCheckingOverlap] = useState(false);
   const [overlapWarning, setOverlapWarning] = useState('');
   const [uploadError, setUploadError] = useState('');
+  const [submitError, setSubmitError] = useState('');
+  const [annualBalance, setAnnualBalance] = useState<AnnualBalanceResponse | null>(null);
   const [validationErrors, setValidationErrors] = useState<{
     managerEmail?: string;
     destinationCountry?: string;
@@ -68,6 +69,13 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
       onStepChange(step);
     }
   }, [step, onStepChange]);
+
+  // Fetch annual balance on mount
+  useEffect(() => {
+    getSIRWAnnualBalance()
+      .then(setAnnualBalance)
+      .catch(() => setAnnualBalance(null));
+  }, []);
 
   const isWorkday = (date: Date) => date.getDay() !== 0 && date.getDay() !== 6;
 
@@ -135,7 +143,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
       setUploadError('');
 
       try {
-        const data = await extractApprovalData(file);
+        const data = await extractApprovalFromFile(file);
         setFormData(prev => ({
           ...prev,
           managerName: data.managerName,
@@ -190,6 +198,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
 
   const handleSubmit = async () => {
     setLoading(true);
+    setSubmitError('');
 
     try {
       // Split manager name into first/last
@@ -223,8 +232,9 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
         setResultMessage(response.message);
       }
     } catch (error: any) {
-      setResult('rejected');
-      setResultMessage(error.message || 'Failed to submit request. Please try again.');
+      // Show validation errors inline instead of navigating to result screen
+      const msg = error.message || 'Failed to submit request. Please try again.';
+      setSubmitError(msg);
     } finally {
       setLoading(false);
     }
@@ -472,13 +482,21 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       value={formData.endDate}
                     />
                     <p className="text-xs text-gray-500 mt-1">Policy limit: maximum 20 workdays per calendar year (Section 4.1.2).</p>
-                    {workdaysSelected > 0 && workdaysSelected <= 20 && (
-                      <p className="text-xs text-blue-600 mt-1">
-                        You've used {workdaysSelected} of your 20 remote workdays for {new Date().getFullYear()}. You have {20 - workdaysSelected} days remaining.
-                      </p>
-                    )}
-                    {workdaysSelected > 20 && (
-                      <p className="text-xs text-red-600 mt-1">This exceeds the 20-workday annual limit.</p>
+                    {workdaysSelected > 0 && (
+                      <div className="mt-1 space-y-0.5">
+                        <p className="text-xs text-blue-600">
+                          This trip: {workdaysSelected} workday{workdaysSelected !== 1 ? 's' : ''}.
+                          {annualBalance != null && (
+                            <> You have {annualBalance.days_remaining} of {annualBalance.days_allowed} days remaining this year.</>
+                          )}
+                        </p>
+                        {annualBalance != null && (workdaysSelected + annualBalance.days_used) > annualBalance.days_allowed && (
+                          <p className="text-xs text-red-600">This trip would exceed your annual limit.</p>
+                        )}
+                        {annualBalance == null && workdaysSelected > 20 && (
+                          <p className="text-xs text-red-600">This exceeds the 20-workday annual limit.</p>
+                        )}
+                      </div>
                     )}
                     {/* Back-to-back overlap warnings removed — not in policy */}
                     {validationErrors.endDate && (
@@ -492,6 +510,15 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
             {/* STEP 3: Compliance Check */}
             {step === 3 && (
               <div className="space-y-8">
+                {submitError && (
+                  <div className="bg-red-50 border border-red-200 p-4 rounded-sm flex items-start space-x-3">
+                    <XCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="text-sm font-bold text-red-900">Submission Error</h4>
+                      <p className="text-xs text-red-800 mt-1">{submitError}</p>
+                    </div>
+                  </div>
+                )}
                 <div
                   className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm hover:border-[#42b0d5] transition-colors cursor-pointer"
                   onClick={() => handleChange('rightToWork', !formData.rightToWork)}
