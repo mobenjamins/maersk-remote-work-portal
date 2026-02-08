@@ -3,6 +3,11 @@ Views for admin portal endpoints.
 """
 
 from django.db.models import Count, Q
+from django.utils import timezone
+from django.conf import settings
+from django.template.loader import render_to_string
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, HtmlContent
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -124,6 +129,68 @@ class AdminRequestViewSet(viewsets.ReadOnlyModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         """Get details of a specific request."""
         return super().retrieve(request, *args, **kwargs)
+
+    @action(detail=True, methods=["post"])
+    def decide(self, request, pk=None):
+        """
+        Approve or reject a request with optional admin note.
+        """
+        decision = request.data.get("decision")
+        note = request.data.get("note", "").strip()
+        instance = self.get_object()
+
+        if decision not in ["approved", "rejected"]:
+            return Response(
+                {"error": "Decision must be 'approved' or 'rejected'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        instance.status = decision
+        instance.decision_source = "human"
+        if note:
+            instance.decision_reason = note
+            RequestComment.objects.create(
+                request=instance, author=request.user, body=note
+            )
+
+        instance.decision_notified_at = timezone.now()
+        instance.save()
+
+        self._send_decision_email(instance, note)
+
+        return Response(AdminRequestListSerializer(instance).data)
+
+    def _send_decision_email(self, instance, note: str):
+        if not settings.SENDGRID_API_KEY:
+            return
+        try:
+            html_content = render_to_string(
+                "emails/decision.html",
+                {
+                    "employee_name": instance.user.first_name or instance.user.email,
+                    "reference_number": instance.reference_number,
+                    "status": instance.status,
+                    "decision_reason": instance.decision_reason,
+                    "note": note,
+                    "destination_country": instance.destination_country,
+                    "start_date": instance.start_date,
+                    "end_date": instance.end_date,
+                },
+            )
+            manager_email = instance.manager_email or None
+            cc_emails = [manager_email] if manager_email else None
+            message = Mail(
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to_emails=instance.user.email,
+                subject=f"SIRW Decision Update: {instance.reference_number}",
+                html_content=HtmlContent(html_content),
+                cc_emails=cc_emails,
+            )
+            sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+            sg.send(message)
+        except Exception:
+            # Avoid blocking the decision if email fails
+            return
 
 
 class PolicyDocumentViewSet(viewsets.ModelViewSet):

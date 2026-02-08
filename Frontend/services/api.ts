@@ -414,6 +414,31 @@ export async function getSIRWAnnualBalance(): Promise<AnnualBalanceResponse> {
   return response.json();
 }
 
+export interface DecisionModalPayload {
+  id: string;
+  reference_number: string;
+  status: string;
+  decision_reason: string;
+  destination_country: string;
+  start_date: string;
+  end_date: string;
+  decision_notified_at?: string;
+}
+
+export async function getLatestDecision(): Promise<DecisionModalPayload | null> {
+  const response = await fetchWithAuth('/requests/decisions/latest/');
+  if (!response.ok) throw new Error('Failed to get latest decision');
+  const data = await response.json();
+  return data.decision || null;
+}
+
+export async function acknowledgeDecision(requestId: string): Promise<void> {
+  const response = await fetchWithAuth(`/requests/${requestId}/acknowledge/`, {
+    method: 'POST',
+  });
+  if (!response.ok) throw new Error('Failed to acknowledge decision');
+}
+
 /**
  * Check if proposed dates overlap with existing requests.
  */

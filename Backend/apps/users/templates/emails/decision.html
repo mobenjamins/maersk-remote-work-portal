@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>SIRW Decision</title>
+  </head>
+  <body style="font-family: Arial, sans-serif; background: #f7f9fb; padding: 24px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb;">
+      <tr>
+        <td style="padding: 20px 24px; border-bottom: 1px solid #e5e7eb;">
+          <h2 style="margin: 0; font-weight: 600; color: #0b1e3b;">SIRW Decision</h2>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 20px 24px;">
+          <p style="margin: 0 0 12px 0; color: #374151;">Hello {{ employee_name }},</p>
+          <p style="margin: 0 0 12px 0; color: #374151;">
+            Your SIRW request <strong>{{ reference_number }}</strong> has been
+            <strong style="color: #42b0d5; text-transform: uppercase;">{{ status }}</strong>.
+          </p>
+          <p style="margin: 0 0 12px 0; color: #374151;">
+            Destination: {{ destination_country }}<br/>
+            Dates: {{ start_date }} to {{ end_date }}
+          </p>
+          <p style="margin: 16px 0 0 0; color: #374151;">
+            Decision details:<br/>
+            {{ decision_reason }}
+          </p>
+          {% if note %}
+          <p style="margin: 16px 0 0 0; color: #374151;">
+            Admin note:<br/>
+            {{ note }}
+          </p>
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 16px 24px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
+          Please log in to the portal to review the full decision details.
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

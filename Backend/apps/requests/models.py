@@ -174,6 +174,16 @@ class RemoteWorkRequest(models.Model):
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    decision_notified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the employee was notified of a final decision",
+    )
+    decision_acknowledged_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the employee acknowledged the decision modal",
+    )
 
     class Meta:
         verbose_name = "Remote Work Request"

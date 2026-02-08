@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Download, X, AlertCircle, CheckCircle, Clock, XCircle, MoreVertical, BrainCircuit } from 'lucide-react';
-import { getAdminRequests, type AdminRequest } from '../services/api';
+import { Search, Download, X, AlertCircle, CheckCircle, Clock, XCircle, MoreVertical } from 'lucide-react';
+import { getAdminRequests, decideAdminRequest, type AdminRequest } from '../services/api';
 import { mockRequests, type Request } from '../data/mockData';
 
 function mapApiRequest(r: AdminRequest, index: number): Request {
+  const mappedStatus = r.status === 'pending' ? 'escalated' : r.status;
   return {
     id: r.id,
     reference: `SIRW-2026-${String(index + 1).padStart(4, '0')}`,
@@ -14,10 +15,14 @@ function mapApiRequest(r: AdminRequest, index: number): Request {
     destinationCountry: r.destination_country,
     startDate: r.start_date,
     endDate: r.end_date,
-    status: r.status as Request['status'],
-    riskLevel: r.status === 'rejected' ? 'high' : r.status === 'escalated' ? 'medium' : 'low',
-    sentiment: r.status === 'approved' ? 85 : r.status === 'rejected' ? -30 : 50,
-    queryCount: 3,
+    status: mappedStatus as Request['status'],
+    riskLevel: mappedStatus === 'rejected' ? 'high' : mappedStatus === 'escalated' ? 'medium' : 'low',
+    createdAt: r.created_at,
+    decisionSource: r.decision_source as Request['decisionSource'],
+    decisionStatus: r.decision_status as Request['decisionStatus'],
+    flags: r.flags,
+    decisionReason: r.decision_reason,
+    exceptionReason: r.exception_reason,
   };
 }
 
@@ -48,10 +53,13 @@ const EmployeeHoverCard = ({ employeeName, role, homeCountry }: { employeeName: 
 
 const RequestManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'escalated'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'review' | 'approved' | 'rejected'>('all');
+  const [sortMode, setSortMode] = useState<'oldest' | 'newest' | 'risk'>('oldest');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [hoveredEmployeeId, setHoveredEmployeeId] = useState<string | number | null>(null);
   const [requests, setRequests] = useState<Request[]>(mockRequests);
+  const [decisionNote, setDecisionNote] = useState('');
+  const [isSubmittingDecision, setIsSubmittingDecision] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +77,22 @@ const RequestManager = () => {
     return () => { cancelled = true; };
   }, []);
 
+  const handleDecision = async (decision: 'approved' | 'rejected') => {
+    if (!selectedRequest) return;
+    setIsSubmittingDecision(true);
+    try {
+      await decideAdminRequest(selectedRequest.id, decision, decisionNote);
+      const data = await getAdminRequests();
+      setRequests(data.map((r, i) => mapApiRequest(r, i)));
+      setDecisionNote('');
+      setSelectedRequest(null);
+    } catch {
+      // keep drawer open if decision fails
+    } finally {
+      setIsSubmittingDecision(false);
+    }
+  };
+
   const filteredRequests = requests.filter(req => {
     const matchesSearch =
       req.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -76,16 +100,111 @@ const RequestManager = () => {
       req.homeCountry.toLowerCase().includes(searchTerm.toLowerCase()) ||
       req.destinationCountry.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
+    const isReviewRequired = req.status === 'escalated';
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'review' && isReviewRequired) ||
+      (statusFilter === 'approved' && req.status === 'approved') ||
+      (statusFilter === 'rejected' && req.status === 'rejected');
 
     return matchesSearch && matchesStatus;
   });
+
+  const getWaitingDays = (req: Request) => {
+    const baseDate = req.createdAt ? new Date(req.createdAt) : new Date(req.startDate);
+    const diff = Math.max(0, Date.now() - baseDate.getTime());
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const getRiskScore = (req: Request) => {
+    const flags = req.flags || [];
+    if (flags.includes('sanctioned_country') || flags.includes('no_right_to_work')) return 3;
+    if (flags.includes('role_ineligible') || flags.includes('exceeds_annual_limit') || flags.includes('exceeds_consecutive_limit')) return 2;
+    return req.riskLevel === 'high' ? 3 : req.riskLevel === 'medium' ? 2 : 1;
+  };
+
+  const sortedRequests = [...filteredRequests].sort((a, b) => {
+    if (sortMode === 'newest') {
+      return getWaitingDays(a) - getWaitingDays(b);
+    }
+    if (sortMode === 'risk') {
+      return getRiskScore(b) - getRiskScore(a);
+    }
+    // oldest first by default
+    return getWaitingDays(b) - getWaitingDays(a);
+  });
+
+  const policyEvidence = {
+    rightToWork: {
+      section: 'Section 4.1.3 Immigration',
+      snippet: 'For permission to be granted for SIRW, a colleague must have the right to work in the relevant country.',
+    },
+    sanctions: {
+      section: 'Section 4.1.3 Relevant countries',
+      snippet: 'SIRW cannot be performed in countries with no Maersk entity',
+    },
+    eligibility: {
+      section: 'Section 4.1.1 Eligibility',
+      snippet: 'Those in frontline, customer-facing roles',
+    },
+    durationAnnual: {
+      section: 'Section 4.1.2 Duration allowed',
+      snippet: 'SIRW can be approved up to a strict maximum of 20 workdays in a calendar year.',
+    },
+    durationConsecutive: {
+      section: 'Section 4.1.2 Duration allowed',
+      snippet: 'The 20 workdays cannot be taken as a single block of 20 continuous days,',
+    },
+    extended: {
+      section: 'Section 5 Extended SIRW (Exceptional)',
+      snippet: 'Exceptional circumstances might be the birth of a child in a foreign country or serious illness / death of immediate family in another country.',
+    },
+  };
+
+  const buildEvidence = (req: Request) => {
+    const flags = req.flags || [];
+    const evidence: Array<{ section: string; snippet: string; reason: string }> = [];
+
+    if (flags.includes('no_right_to_work')) {
+      evidence.push({ ...policyEvidence.rightToWork, reason: 'Right to work not confirmed.' });
+    }
+    if (flags.includes('sanctioned_country')) {
+      evidence.push({ ...policyEvidence.sanctions, reason: 'Destination is sanctioned or blocked.' });
+    }
+    if (flags.includes('role_ineligible')) {
+      evidence.push({ ...policyEvidence.eligibility, reason: 'Role category not eligible.' });
+    }
+    if (flags.includes('exceeds_annual_limit')) {
+      evidence.push({ ...policyEvidence.durationAnnual, reason: 'Exceeds annual limit.' });
+    }
+    if (flags.includes('exceeds_consecutive_limit')) {
+      evidence.push({ ...policyEvidence.durationConsecutive, reason: 'Exceeds consecutive limit.' });
+    }
+    if (flags.some((f) => f.startsWith('exception:')) || req.status === 'escalated') {
+      evidence.push({ ...policyEvidence.extended, reason: 'Exception requested.' });
+    }
+
+    return evidence;
+  };
+
+  const getAiRecommendation = (req: Request) => {
+    const flags = req.flags || [];
+    const hardBlock = flags.includes('no_right_to_work') || flags.includes('sanctioned_country') || flags.includes('role_ineligible');
+    if (hardBlock) {
+      return { decision: 'Reject', rationale: 'Hard policy blockers detected.' };
+    }
+    if (flags.includes('exceeds_annual_limit') || flags.includes('exceeds_consecutive_limit')) {
+      return { decision: 'Approve', rationale: 'Eligible with exception; no hard blockers detected.' };
+    }
+    return { decision: 'Approve', rationale: 'No hard blockers detected.' };
+  };
 
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'approved': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
       case 'rejected': return 'bg-red-50 text-red-700 border-red-100';
-      case 'escalated': return 'bg-amber-50 text-amber-700 border-amber-100';
+      case 'escalated':
+        return 'bg-amber-50 text-amber-700 border-amber-100';
       default: return 'bg-blue-50 text-blue-700 border-blue-100';
     }
   };
@@ -94,17 +213,33 @@ const RequestManager = () => {
     switch (status) {
       case 'approved': return <CheckCircle size={12} />;
       case 'rejected': return <XCircle size={12} />;
-      case 'escalated': return <AlertCircle size={12} />;
+      case 'escalated':
+        return <AlertCircle size={12} />;
       default: return <Clock size={12} />;
     }
+  };
+
+  const getStatusLabel = (status: string) => {
+    if (status === 'escalated') return 'Review required';
+    return status;
+  };
+
+  const getDecisionLabel = (req: Request) => {
+    if (req.status === 'approved') {
+      return req.decisionSource === 'auto' ? 'Auto approved' : req.decisionSource === 'human' ? 'Human approved' : 'Approved';
+    }
+    if (req.status === 'rejected') {
+      return req.decisionSource === 'auto' ? 'Auto rejected' : req.decisionSource === 'human' ? 'Human rejected' : 'Rejected';
+    }
+    return '—';
   };
 
   return (
     <div className="p-8 space-y-8 h-full flex flex-col">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-2xl font-light text-gray-900 mb-1">Request Manager</h2>
-          <p className="text-sm text-gray-500 font-light">Detailed review and processing of all SIRW applications.</p>
+          <h2 className="text-2xl font-light text-gray-900 mb-1">Dashboard</h2>
+          <p className="text-sm text-gray-500 font-light">Review required cases first, then approve or reject quickly.</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-600 hover:text-maersk-blue hover:border-maersk-blue rounded-sm transition-all text-xs font-bold uppercase tracking-widest shadow-sm">
           <Download size={14} />
@@ -127,19 +262,37 @@ const RequestManager = () => {
 
         <div className="flex items-center gap-3">
           <div className="flex gap-1 p-1 bg-gray-100 rounded-sm">
-            {(['all', 'pending', 'approved', 'rejected', 'escalated'] as const).map((status) => (
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'review', label: 'Review required' },
+              { key: 'approved', label: 'Approved' },
+              { key: 'rejected', label: 'Rejected' },
+            ].map((status) => (
               <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
+                key={status.key}
+                onClick={() => setStatusFilter(status.key as typeof statusFilter)}
                 className={`px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider transition-all ${
-                  statusFilter === status
+                  statusFilter === status.key
                     ? 'bg-white text-maersk-dark shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
+                title={status.key === 'review' ? 'Requires human review' : ''}
               >
-                {status}
+                {status.label}
               </button>
             ))}
+          </div>
+          <div className="flex items-center gap-2 bg-gray-100 rounded-sm p-1">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 px-2">Sort</label>
+            <select
+              className="bg-white border border-gray-200 rounded-sm text-[10px] font-bold uppercase tracking-widest px-2 py-1"
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as typeof sortMode)}
+            >
+              <option value="oldest">Oldest first</option>
+              <option value="newest">Newest first</option>
+              <option value="risk">Highest risk</option>
+            </select>
           </div>
         </div>
       </div>
@@ -154,15 +307,15 @@ const RequestManager = () => {
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Employee</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Route</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Dates</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Sentiment</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Waiting days</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Status</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Triage</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Decision source</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               <AnimatePresence mode='popLayout'>
-                {filteredRequests.map((req, index) => (
+                {sortedRequests.map((req, index) => (
                   <motion.tr
                     key={req.id}
                     initial={{ opacity: 0, x: -20 }}
@@ -209,22 +362,19 @@ const RequestManager = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-sm ${
-                        req.sentiment > 50 ? 'text-emerald-600 bg-emerald-50' :
-                        req.sentiment < 0 ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'
-                      }`}>
-                        {req.sentiment > 0 ? '+' : ''}{req.sentiment}
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-sm bg-gray-50 text-gray-600">
+                        {getWaitingDays(req)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider border ${getStatusStyle(req.status)}`}>
                         {getStatusIcon(req.status)}
-                        {req.status}
+                        {getStatusLabel(req.status).toLowerCase()}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">
-                        {(req as any).decision_status || '—'}
+                        {getDecisionLabel(req)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -248,7 +398,7 @@ const RequestManager = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedRequest(null)}
+              onClick={() => { setSelectedRequest(null); setDecisionNote(''); }}
               className="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px]"
             />
             <motion.div
@@ -264,7 +414,7 @@ const RequestManager = () => {
                   <p className="text-xs font-bold text-maersk-blue uppercase tracking-widest mt-1">{selectedRequest.reference}</p>
                 </div>
                 <button
-                  onClick={() => setSelectedRequest(null)}
+                  onClick={() => { setSelectedRequest(null); setDecisionNote(''); }}
                   className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
                 >
                   <X size={20} />
@@ -279,7 +429,7 @@ const RequestManager = () => {
                     </div>
                     <div>
                       <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Current Status</div>
-                      <div className="text-sm font-bold text-gray-900 uppercase">{selectedRequest.status}</div>
+                      <div className="text-sm font-bold text-gray-900 uppercase">{getStatusLabel(selectedRequest.status)}</div>
                     </div>
                   </div>
                 </div>
@@ -314,48 +464,94 @@ const RequestManager = () => {
                 </div>
 
                 <section className="pt-6 border-t border-gray-100">
-                  <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4">Risk & Compliance Analysis</h4>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center p-3 bg-white border border-gray-100 rounded-sm shadow-sm">
-                      <span className="text-sm text-gray-600">Permanent Establishment Risk</span>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-sm uppercase ${
-                        selectedRequest.riskLevel === 'high' ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'
-                      }`}>
-                        {selectedRequest.riskLevel}
-                      </span>
+                  <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4">Review Summary</h4>
+                  {selectedRequest.status === 'escalated' ? (
+                    <div className="space-y-4">
+                      {(selectedRequest.decisionReason || selectedRequest.exceptionReason) && (
+                        <div className="p-4 bg-white border border-gray-100 rounded-sm shadow-sm">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">System note</div>
+                          {selectedRequest.decisionReason && (
+                            <div className="text-xs text-gray-700 mb-2">{selectedRequest.decisionReason}</div>
+                          )}
+                          {selectedRequest.exceptionReason && (
+                            <div className="text-xs text-gray-700 italic">Exception reason: {selectedRequest.exceptionReason}</div>
+                          )}
+                        </div>
+                      )}
+                      <div className="p-4 bg-amber-50/40 border border-amber-100 rounded-sm">
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-amber-700 mb-2">Why review is required</div>
+                        <ul className="space-y-3 text-xs text-gray-700">
+                          {buildEvidence(selectedRequest).map((e, idx) => (
+                            <li key={idx} className="leading-relaxed flex gap-2">
+                              <CheckCircle size={14} className="text-gray-400 mt-0.5" />
+                              <div>
+                                <div className="font-semibold">{e.section}</div>
+                                <div className="text-gray-700">“{e.snippet}”</div>
+                                <div className="text-[11px] text-gray-500">Reason: {e.reason}</div>
+                              </div>
+                            </li>
+                          ))}
+                          {buildEvidence(selectedRequest).length === 0 && (
+                            <li className="text-gray-500">No explicit policy flags were recorded.</li>
+                          )}
+                        </ul>
+                      </div>
+
+                      <div className="p-4 bg-white border border-gray-100 rounded-sm shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500">AI Recommendation</div>
+                          <div className="text-xs font-bold uppercase text-maersk-blue">
+                            {getAiRecommendation(selectedRequest).decision}
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-700 mb-3">
+                          {getAiRecommendation(selectedRequest).rationale}
+                        </div>
+                        <div className="text-[11px] text-gray-500">
+                          Citations:
+                          <ul className="list-disc ml-4 mt-1 space-y-1">
+                            {buildEvidence(selectedRequest).map((e, idx) => (
+                              <li key={idx}>{e.section} — “{e.snippet}”</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-gray-50 border border-gray-100 rounded-sm">
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Notes to employee</div>
+                        <textarea
+                          value={decisionNote}
+                          onChange={(e) => setDecisionNote(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-sm p-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-maersk-blue min-h-[90px]"
+                          placeholder="Add a short explanation or next steps..."
+                        />
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-white border border-gray-100 rounded-sm shadow-sm">
-                      <span className="text-sm text-gray-600">Right to Work Verification</span>
-                      <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 uppercase">
-                        <CheckCircle size={12} /> Verified
-                      </span>
-                    </div>
-                    <div className="p-4 bg-blue-50/30 border border-blue-100 rounded-sm">
-                      <h5 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 flex items-center gap-1">
-                         <BrainCircuit size={14} className="inline" /> AI Sentiment Flag
-                      </h5>
-                      <p className="text-xs text-blue-800 leading-relaxed">
-                        The employee expressed {selectedRequest.sentiment > 50 ? 'high satisfaction' : selectedRequest.sentiment < 0 ? 'frustration' : 'neutral sentiment'} ({selectedRequest.sentiment > 0 ? '+' : ''}{selectedRequest.sentiment}) during the assessment.
-                      </p>
-                    </div>
-                  </div>
+                  ) : (
+                    <div className="text-sm text-gray-500">This case does not require manual review.</div>
+                  )}
                 </section>
               </div>
 
               <div className="p-6 border-t border-gray-100 bg-gray-50 flex gap-3">
-                {selectedRequest.status === 'pending' && (
+                {(selectedRequest.status === 'escalated') && (
                   <>
-                    <button className="flex-1 py-3 px-4 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-sm text-xs font-bold uppercase tracking-widest transition-all">
-                      Decline
+                    <button
+                      onClick={() => handleDecision('rejected')}
+                      disabled={isSubmittingDecision}
+                      className="flex-1 py-3 px-4 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-sm text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-50"
+                    >
+                      Reject
                     </button>
-                    <button className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm text-xs font-bold uppercase tracking-widest transition-all shadow-md shadow-emerald-500/20">
-                      Approve Request
+                    <button
+                      onClick={() => handleDecision('approved')}
+                      disabled={isSubmittingDecision}
+                      className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm text-xs font-bold uppercase tracking-widest transition-all shadow-md shadow-emerald-500/20 disabled:opacity-50"
+                    >
+                      Approve
                     </button>
                   </>
                 )}
-                <button className="flex-1 py-3 px-4 bg-maersk-dark hover:bg-maersk-deep text-white rounded-sm text-xs font-bold uppercase tracking-widest transition-all">
-                  Escalate Case
-                </button>
               </div>
             </motion.div>
           </div>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#EDF5FF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#EDF5FF;padding:40px 0;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:4px;overflow:hidden;">
+  <tr><td style="background:#1B1C31;padding:28px 32px;">
+    <span style="color:#ffffff;font-size:18px;font-weight:600;letter-spacing:0.5px;">Maersk SIRW Portal</span>
+  </td></tr>
+  <tr><td style="padding:32px;">
+    <p style="color:#1B1C31;font-size:15px;margin:0 0 20px;">Hello {{ employee_name }},</p>
+    <p style="color:#1B1C31;font-size:15px;margin:0 0 20px;">
+      Your Short International Remote Work request <strong>{{ reference_number }}</strong> has been
+      {% if status == 'approved' %}
+      <span style="color:#059669;font-weight:700;">approved</span>.
+      {% elif status == 'rejected' %}
+      <span style="color:#BD4040;font-weight:700;">rejected</span>.
+      {% else %}
+      updated to <strong>{{ status }}</strong>.
+      {% endif %}
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border:1px solid #EEEEEE;border-radius:4px;margin:0 0 20px;">
+      <tr>
+        <td style="padding:12px 16px;border-bottom:1px solid #EEEEEE;">
+          <span style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Destination</span><br>
+          <span style="color:#1B1C31;font-size:14px;font-weight:600;">{{ destination_country }}</span>
+        </td>
+        <td style="padding:12px 16px;border-bottom:1px solid #EEEEEE;">
+          <span style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Dates</span><br>
+          <span style="color:#1B1C31;font-size:14px;font-weight:600;">{{ start_date }} &ndash; {{ end_date }}</span>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2" style="padding:12px 16px;">
+          <span style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Decision Reason</span><br>
+          <span style="color:#1B1C31;font-size:14px;">{{ decision_reason }}</span>
+        </td>
+      </tr>
+      {% if note %}
+      <tr>
+        <td colspan="2" style="padding:12px 16px;border-top:1px solid #EEEEEE;">
+          <span style="color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Reviewer Note</span><br>
+          <span style="color:#1B1C31;font-size:14px;">{{ note }}</span>
+        </td>
+      </tr>
+      {% endif %}
+    </table>
+    <p style="color:#6B7280;font-size:13px;margin:0;">
+      If you have questions, please contact Global Mobility.
+    </p>
+  </td></tr>
+  <tr><td style="background:#F8FAFC;padding:16px 32px;border-top:1px solid #EEEEEE;">
+    <span style="color:#9CA3AF;font-size:11px;">Maersk SIRW Portal &bull; This is an automated notification</span>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>

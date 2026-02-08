@@ -6,7 +6,7 @@ import { Questionnaire } from './components/Questionnaire';
 import { PolicyChatbot } from './components/PolicyChatbot';
 import { PolicyModal } from './components/PolicyModal';
 import { ViewState, RequestFormData } from './types';
-import { initAuth, logout, User } from './services/api';
+import { initAuth, logout, User, getLatestDecision, acknowledgeDecision, DecisionModalPayload } from './services/api';
 
 const App: React.FC = () => {
   const [viewState, setViewState] = useState<ViewState>(ViewState.LOGIN);
@@ -16,6 +16,8 @@ const App: React.FC = () => {
   const [currentFormData, setCurrentFormData] = useState<RequestFormData | undefined>(undefined);
   const [currentWizardStep, setCurrentWizardStep] = useState(1);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
+  const [decisionModal, setDecisionModal] = useState<DecisionModalPayload | null>(null);
+  const [isDecisionLoading, setIsDecisionLoading] = useState(false);
 
   useEffect(() => {
     const savedUser = initAuth();
@@ -24,6 +26,15 @@ const App: React.FC = () => {
       setViewState(ViewState.DASHBOARD);
     }
   }, []);
+
+  useEffect(() => {
+    if (viewState !== ViewState.DASHBOARD || !user) return;
+    setIsDecisionLoading(true);
+    getLatestDecision()
+      .then((decision) => setDecisionModal(decision))
+      .catch(() => setDecisionModal(null))
+      .finally(() => setIsDecisionLoading(false));
+  }, [viewState, user]);
 
   useEffect(() => {
     const handleAuthExpired = () => {
@@ -47,6 +58,12 @@ const App: React.FC = () => {
     await logout();
     setUser(null);
     setViewState(ViewState.LOGIN);
+  };
+
+  const handleDecisionAcknowledge = async () => {
+    if (!decisionModal) return;
+    await acknowledgeDecision(decisionModal.id);
+    setDecisionModal(null);
   };
 
   const renderContent = () => {
@@ -193,6 +210,36 @@ const App: React.FC = () => {
                 className="bg-[#42b0d5] hover:bg-[#3aa3c7] text-white font-semibold py-2 px-4 rounded-sm transition-colors"
               >
                 Sign in
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {decisionModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-lg rounded-sm shadow-2xl border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900">Decision Update</h2>
+              <p className="text-xs text-gray-500 mt-1">Request {decisionModal.reference_number}</p>
+            </div>
+            <div className="px-6 py-5 text-sm text-gray-700 space-y-3">
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-500">Outcome</div>
+              <div className={`text-sm font-semibold uppercase ${decisionModal.status === 'approved' ? 'text-emerald-600' : 'text-red-600'}`}>
+                {decisionModal.status}
+              </div>
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-500 mt-4">Details</div>
+              <div className="text-sm text-gray-700">{decisionModal.decision_reason}</div>
+              <div className="text-xs text-gray-500 mt-3">
+                Destination: {decisionModal.destination_country} • {decisionModal.start_date} to {decisionModal.end_date}
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={handleDecisionAcknowledge}
+                className="bg-[#42b0d5] hover:bg-[#3aa3c7] text-white font-semibold py-2 px-4 rounded-sm transition-colors"
+                disabled={isDecisionLoading}
+              >
+                Acknowledge
               </button>
             </div>
           </div>

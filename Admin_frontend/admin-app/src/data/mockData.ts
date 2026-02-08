@@ -11,8 +11,12 @@ export interface Request {
   endDate: string;
   status: 'pending' | 'approved' | 'rejected' | 'escalated';
   riskLevel: 'low' | 'medium' | 'high';
-  sentiment: number;
-  queryCount: number;
+  createdAt?: string;
+  decisionSource?: 'auto' | 'human';
+  decisionStatus?: 'auto_approved' | 'auto_rejected' | 'needs_review';
+  flags?: string[];
+  decisionReason?: string;
+  exceptionReason?: string;
 }
 
 export const mockRequests: Request[] = [
@@ -25,10 +29,9 @@ export const mockRequests: Request[] = [
     destinationCountry: 'Spain',
     startDate: format(addDays(new Date(), 10), 'yyyy-MM-dd'),
     endDate: format(addDays(new Date(), 25), 'yyyy-MM-dd'),
-    status: 'pending',
+    status: 'escalated',
     riskLevel: 'low',
-    sentiment: 85,
-    queryCount: 3,
+    createdAt: format(subDays(new Date(), 12), 'yyyy-MM-dd'),
   },
   {
     id: '2',
@@ -41,8 +44,7 @@ export const mockRequests: Request[] = [
     endDate: format(addDays(new Date(), 15), 'yyyy-MM-dd'),
     status: 'rejected',
     riskLevel: 'high',
-    sentiment: -40,
-    queryCount: 12,
+    createdAt: format(subDays(new Date(), 4), 'yyyy-MM-dd'),
   },
   {
     id: '3',
@@ -55,8 +57,7 @@ export const mockRequests: Request[] = [
     endDate: format(addDays(new Date(), 10), 'yyyy-MM-dd'),
     status: 'approved',
     riskLevel: 'low',
-    sentiment: 92,
-    queryCount: 2,
+    createdAt: format(subDays(new Date(), 2), 'yyyy-MM-dd'),
   },
   {
     id: '4',
@@ -69,8 +70,7 @@ export const mockRequests: Request[] = [
     endDate: format(addDays(new Date(), 50), 'yyyy-MM-dd'),
     status: 'escalated',
     riskLevel: 'medium',
-    sentiment: 15,
-    queryCount: 8,
+    createdAt: format(subDays(new Date(), 20), 'yyyy-MM-dd'),
   },
   {
     id: '5',
@@ -81,9 +81,8 @@ export const mockRequests: Request[] = [
     destinationCountry: 'Italy',
     startDate: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
     endDate: format(addDays(new Date(), 40), 'yyyy-MM-dd'),
-    status: 'pending',
+    status: 'escalated',
     riskLevel: 'low',
-    sentiment: 60,
-    queryCount: 4,
+    createdAt: format(subDays(new Date(), 8), 'yyyy-MM-dd'),
   },
 ];

@@ -13,7 +13,7 @@ import './index.css';
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
@@ -34,12 +34,13 @@ function App() {
   };
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'requests', label: 'Request Manager', icon: FileText },
+    { id: 'dashboard', label: 'Dashboard', icon: FileText },
+    { id: 'overview', label: 'Analytics view', icon: LayoutDashboard },
     { id: 'questions', label: 'Questions & Exceptions', icon: MessageSquare },
     { id: 'intelligence', label: 'Intelligence Hub', icon: BrainCircuit },
     { id: 'policy', label: 'Policy Governance', icon: ShieldAlert },
   ];
+  const activeLabel = tabs.find((tab) => tab.id === activeTab)?.label || activeTab;
 
   if (loading) {
     return (
@@ -166,7 +167,7 @@ function App() {
           <div className="flex items-center gap-2 text-sm">
             <span className="text-gray-400">Admin</span>
             <span className="text-gray-300">/</span>
-            <span className="font-medium text-gray-900 capitalize">{activeTab}</span>
+            <span className="font-medium text-gray-900">{activeLabel}</span>
           </div>
           <div className="flex items-center gap-4">
              <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-100 rounded text-xs font-medium text-red-600 animate-pulse cursor-pointer hover:bg-red-100 transition-colors">
@@ -193,8 +194,8 @@ function App() {
               transition={{ duration: 0.2 }}
               className="h-full"
             >
+              {activeTab === 'dashboard' && <RequestManager />}
               {activeTab === 'overview' && <OverviewDashboard setActiveTab={setActiveTab} />}
-              {activeTab === 'requests' && <RequestManager />}
               {activeTab === 'questions' && <QuestionsExceptions />}
               {activeTab === 'intelligence' && <IntelligenceHub />}
               {activeTab === 'policy' && <PolicyEditor />}

@@ -32,11 +32,13 @@ export interface AdminRequest {
   duration_days: number;
   status: string;
   decision_status?: string;
+  decision_source?: string;
   flags?: string[];
   decision_reason: string;
   created_at: string;
   is_exception_request?: boolean;
   exception_reason?: string;
+  decision_notified_at?: string;
 }
 
 export interface AdminAnalytics {
@@ -190,6 +192,15 @@ export async function getAdminRequests(filters?: {
 export async function getAdminRequest(id: string): Promise<AdminRequest> {
   const response = await fetchWithAuth(`/admin/requests/${id}/`);
   if (!response.ok) throw new Error('Failed to get request');
+  return response.json();
+}
+
+export async function decideAdminRequest(id: string, decision: 'approved' | 'rejected', note?: string): Promise<AdminRequest> {
+  const response = await fetchWithAuth(`/admin/requests/${id}/decide/`, {
+    method: 'POST',
+    body: JSON.stringify({ decision, note }),
+  });
+  if (!response.ok) throw new Error('Failed to record decision');
   return response.json();
 }
 

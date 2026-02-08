@@ -52,10 +52,12 @@ class AdminRequestListSerializer(serializers.ModelSerializer):
             "duration_days",
             "status",
             "decision_status",
+            "decision_source",
             "decision_reason",
             "flags",
             "is_exception_request",
             "exception_reason",
+            "decision_notified_at",
             "created_at",
         ]
         read_only_fields = fields

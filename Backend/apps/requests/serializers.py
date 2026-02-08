@@ -49,6 +49,8 @@ class RemoteWorkRequestSerializer(serializers.ModelSerializer):
             "escalation_note",
             "created_at",
             "updated_at",
+            "decision_notified_at",
+            "decision_acknowledged_at",
         ]
         read_only_fields = [
             "id",
@@ -250,4 +252,21 @@ class RequestListSerializer(serializers.ModelSerializer):
             "end_date",
             "duration_days",
             "created_at",
+        ]
+
+
+class DecisionModalSerializer(serializers.ModelSerializer):
+    """Serializer for employee decision modal payload."""
+
+    class Meta:
+        model = RemoteWorkRequest
+        fields = [
+            "id",
+            "reference_number",
+            "status",
+            "decision_reason",
+            "destination_country",
+            "start_date",
+            "end_date",
+            "decision_notified_at",
         ]

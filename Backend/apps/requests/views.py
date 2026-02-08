@@ -6,6 +6,7 @@ import logging
 
 from django.conf import settings
 from django.db.models import Sum
+from django.template.loader import render_to_string
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
@@ -23,6 +24,7 @@ from .serializers import (
     ChatSessionSerializer,
     ChatMessageSerializer,
     SIRWWizardRequestSerializer,
+    DecisionModalSerializer,
 )
 from apps.compliance.services import ComplianceService
 from apps.compliance.blocked_countries import is_country_blocked, get_block_message
@@ -145,6 +147,36 @@ class RemoteWorkRequestViewSet(viewsets.ModelViewSet):
         instance.status = "cancelled"
         instance.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=["get"], url_path="decisions/latest")
+    def latest_decision(self, request):
+        """
+        Return the latest unacknowledged decision for the current user.
+        """
+        decision = (
+            RemoteWorkRequest.objects.filter(
+                user=request.user,
+                status__in=["approved", "rejected"],
+                decision_acknowledged_at__isnull=True,
+            )
+            .order_by("-updated_at")
+            .first()
+        )
+        if not decision:
+            return Response({"decision": None})
+        return Response({"decision": DecisionModalSerializer(decision).data})
+
+    @action(detail=True, methods=["post"], url_path="acknowledge")
+    def acknowledge_decision(self, request, pk=None):
+        """
+        Mark a decision modal as acknowledged.
+        """
+        instance = self.get_object()
+        if instance.user != request.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        instance.decision_acknowledged_at = timezone.now()
+        instance.save(update_fields=["decision_acknowledged_at"])
+        return Response({"status": "acknowledged"})
 
 
 @extend_schema(
@@ -289,7 +321,12 @@ def sirw_wizard_submit(request):
 
     instance.decision_source = RemoteWorkRequest.DecisionSource.AUTO
     instance.flags = flags
+    if instance.status in ["approved", "rejected"]:
+        instance.decision_notified_at = timezone.now()
     instance.save()
+
+    if instance.status in ["approved", "rejected"]:
+        _send_decision_email(instance, "")
 
     logger.info(
         f"SIRW Request {instance.reference_number} created: "
@@ -310,6 +347,45 @@ def sirw_wizard_submit(request):
         },
         status=status.HTTP_201_CREATED,
     )
+
+
+def _send_decision_email(instance, note: str) -> None:
+    if not settings.SENDGRID_API_KEY:
+        return
+    try:
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail, HtmlContent
+    except Exception:
+        logger.warning("SendGrid client not available; decision email not sent.")
+        return
+
+    try:
+        html_content = render_to_string(
+            "emails/decision.html",
+            {
+                "employee_name": instance.user.first_name or instance.user.email,
+                "reference_number": instance.reference_number,
+                "status": instance.status,
+                "decision_reason": instance.decision_reason,
+                "note": note,
+                "destination_country": instance.destination_country,
+                "start_date": instance.start_date,
+                "end_date": instance.end_date,
+            },
+        )
+        manager_email = instance.manager_email or None
+        cc_emails = [manager_email] if manager_email else None
+        message = Mail(
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to_emails=instance.user.email,
+            subject=f"SIRW Decision Update: {instance.reference_number}",
+            html_content=HtmlContent(html_content),
+            cc_emails=cc_emails,
+        )
+        sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+        sg.send(message)
+    except Exception:
+        logger.exception("Failed to send decision email.")
 
 
 @extend_schema(

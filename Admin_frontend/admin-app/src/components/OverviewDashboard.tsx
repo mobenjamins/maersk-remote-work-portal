@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, Globe, CheckCircle, TrendingUp, ArrowRight, X, Map as MapIcon, Home, Plane, Loader2 } from 'lucide-react';
+import { Users, Globe, CheckCircle, X, Map as MapIcon, Home, Plane, Loader2, ArrowRight } from 'lucide-react';
 import { scaleLinear } from 'd3-scale';
 import { Tooltip as ReactTooltip } from 'react-tooltip';
 import { getAdminDashboard, getAdminRequests, type AdminAnalytics, type AdminRequest } from '../services/api';
@@ -33,6 +33,7 @@ const AnimatedCounter = ({ value, duration = 2 }: { value: number, duration?: nu
 
 // Map AdminRequest to local Request shape for display
 function mapApiRequest(r: AdminRequest, index: number): Request {
+  const mappedStatus = r.status === 'pending' ? 'escalated' : r.status;
   return {
     id: r.id,
     reference: `SIRW-2026-${String(index + 1).padStart(4, '0')}`,
@@ -42,10 +43,9 @@ function mapApiRequest(r: AdminRequest, index: number): Request {
     destinationCountry: r.destination_country,
     startDate: r.start_date,
     endDate: r.end_date,
-    status: r.status as Request['status'],
-    riskLevel: r.status === 'rejected' ? 'high' : r.status === 'escalated' ? 'medium' : 'low',
-    sentiment: r.status === 'approved' ? 85 : r.status === 'rejected' ? -30 : 50,
-    queryCount: 3,
+    status: mappedStatus as Request['status'],
+    riskLevel: mappedStatus === 'rejected' ? 'high' : mappedStatus === 'escalated' ? 'medium' : 'low',
+    createdAt: r.created_at,
   };
 }
 
@@ -109,9 +109,9 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
   const uniqueCountries = new Set(requests.map(r => r.destinationCountry)).size;
   const triage = useMemo(() => {
     return {
-      autoApproved: requests.filter(r => (r as any).decision_status === 'auto_approved' || r.status === 'approved').length,
-      autoRejected: requests.filter(r => (r as any).decision_status === 'auto_rejected' || r.status === 'rejected').length,
-      needsReview: requests.filter(r => (r as any).decision_status === 'needs_review' || r.status === 'escalated' || r.status === 'pending').length,
+      approved: requests.filter(r => r.status === 'approved').length,
+      rejected: requests.filter(r => r.status === 'rejected').length,
+      reviewRequired: requests.filter(r => r.status === 'escalated').length,
     };
   }, [requests]);
 
@@ -130,13 +130,13 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
     <div className="p-8 space-y-8 pb-20">
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-light text-gray-900 mb-1">Global Mobility Overview</h2>
+          <h2 className="text-2xl font-light text-gray-900 mb-1">Analytics view</h2>
           <p className="text-sm text-gray-500 font-light italic">Click on any chart or metric to drill down into specific case data.</p>
         </div>
       </div>
 
       {/* KPI Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div onClick={() => { setFilterType('kpi'); setFilterValue('total'); }}>
           <KPICard
             title="Total Requests"
@@ -170,24 +170,14 @@ const OverviewDashboard = ({ setActiveTab }: { setActiveTab: (t: string) => void
             delay={0.2}
           />
         </div>
-        <div onClick={() => setActiveTab('intelligence')} className="cursor-pointer">
-          <KPICard
-            title="Avg. Sentiment"
-            value={<span>+<AnimatedCounter value={42} /></span>}
-            change="View Analytics"
-            icon={TrendingUp}
-            color="amber"
-            delay={0.3}
-          />
-        </div>
       </div>
 
       {/* Triage widget */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: 'Needs Review', value: triage.needsReview, tone: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
-          { label: 'Auto Approved', value: triage.autoApproved, tone: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
-          { label: 'Auto Rejected', value: triage.autoRejected, tone: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100' },
+          { label: 'Review required', value: triage.reviewRequired, tone: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
+          { label: 'Approved', value: triage.approved, tone: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
+          { label: 'Rejected', value: triage.rejected, tone: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100' },
         ].map((item) => (
           <div
             key={item.label}

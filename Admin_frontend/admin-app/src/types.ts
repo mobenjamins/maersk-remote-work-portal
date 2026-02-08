@@ -27,11 +27,13 @@ export interface AdminRequest {
   duration_days: number;
   status: string;
   decision_status?: string;
+  decision_source?: string;
   flags?: string[];
   decision_reason: string;
   created_at: string;
   is_exception_request?: boolean;
   exception_reason?: string;
+  decision_notified_at?: string;
 }
 
 export interface AdminAnalytics {
