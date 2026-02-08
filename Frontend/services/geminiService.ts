@@ -1,9 +1,5 @@
 import { GoogleGenAI, Chat } from "@google/genai";
 import * as pdfjsLib from 'pdfjs-dist';
-// @ts-ignore
-import MsgReader from '@kenjiuno/msgreader';
-// @ts-ignore
-import { readEml } from 'eml-parse-js';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
@@ -228,6 +224,7 @@ async function readPdfText(file: File): Promise<string> {
 
 async function readMsgText(file: File): Promise<string> {
   try {
+    const { default: MsgReader } = await import('@kenjiuno/msgreader');
     const arrayBuffer = await file.arrayBuffer();
     const msgReader = new MsgReader(arrayBuffer);
     const fileData = msgReader.getFileData();
@@ -245,6 +242,7 @@ async function readMsgText(file: File): Promise<string> {
 
 async function readEmlText(file: File): Promise<string> {
   try {
+    const { readEml } = await import('eml-parse-js');
     const text = await file.text();
     const parsed = readEml(text);
 
