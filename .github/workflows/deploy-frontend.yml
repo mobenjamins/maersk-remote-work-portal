@@ -69,9 +69,9 @@ jobs:
           # Copy employee frontend to root
           cp -r Frontend/dist/* dist/
 
-          # Copy admin frontend to /employer subpath
-          mkdir -p dist/employer
-          cp -r Admin_frontend/admin-app/dist/* dist/employer/
+          # Copy admin frontend to /admin subpath
+          mkdir -p dist/admin
+          cp -r Admin_frontend/admin-app/dist/* dist/admin/
 
           # Add .nojekyll to bypass Jekyll processing
           touch dist/.nojekyll
