@@ -601,6 +601,17 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
         </AnimatePresence>
       </div>
 
+      {/* Submission Error Banner */}
+      {submitError && (
+        <div className="mx-8 mb-4 p-4 bg-red-50 border border-red-200 rounded-sm flex items-start gap-3">
+          <XCircle size={18} className="text-red-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-red-800">Submission failed</p>
+            <p className="text-sm text-red-600 mt-1">{submitError}</p>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
         {step > 1 ? (
