@@ -3,7 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 // @ts-ignore
 import MsgReader from '@kenjiuno/msgreader';
 // @ts-ignore
-import EmlParser from 'eml-parse-js';
+import { readEml } from 'eml-parse-js';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
@@ -246,10 +246,8 @@ async function readMsgText(file: File): Promise<string> {
 async function readEmlText(file: File): Promise<string> {
   try {
     const text = await file.text();
-    // Simple EML parsing if library fails or for robustness
-    const parser = new EmlParser(text);
-    const parsed = parser.parse();
-    
+    const parsed = readEml(text);
+
     // Construct a text representation including headers
     let result = '';
     if (parsed.headers) {
