@@ -43,8 +43,6 @@ jobs:
         working-directory: ./Frontend
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: npm run build
 
       # Build Admin Frontend
@@ -56,8 +54,6 @@ jobs:
         working-directory: ./Admin_frontend/admin-app
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: npm run build
 
       # Combine both builds
