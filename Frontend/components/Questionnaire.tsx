@@ -3,7 +3,7 @@ import { User, submitSIRWRequest, checkDateOverlap, getSIRWAnnualBalance, extrac
 import { RequestFormData } from '../types';
 import { CountryAutocomplete } from './CountryAutocomplete';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, AlertCircle, XCircle, Info, UploadCloud, Calendar, ShieldCheck } from 'lucide-react';
+import { CheckCircle, AlertCircle, XCircle, Info, UploadCloud, Calendar, ShieldCheck, ChevronRight, AlertTriangle } from 'lucide-react';
 
 interface QuestionnaireProps {
   user?: User | null;
@@ -31,9 +31,9 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
   }>({});
 
   const [formData, setFormData] = useState<RequestFormData>({
-    firstName: user?.first_name || '',
-    lastName: user?.last_name || '',
-    homeCountry: user?.home_country || 'Denmark',
+    firstName: '',
+    lastName: '',
+    homeCountry: 'Denmark',
     managerName: '',
     managerEmail: '',
     destinationCountry: '',
@@ -43,16 +43,25 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     noRestrictedRoles: false,
   });
 
-  // Pre-populate from user if email is available but name fields are empty
+  // Safe pre-population
   useEffect(() => {
-    if (user?.email && !formData.firstName) {
-      const parts = user.email.split('@')[0].split('.');
-      setFormData(prev => ({
-        ...prev,
-        firstName: user.first_name || (parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1) : ''),
-        lastName: user.last_name || (parts[1] ? parts[1].charAt(0).toUpperCase() + parts[1].slice(1) : ''),
-        homeCountry: user.home_country || prev.homeCountry,
-      }));
+    if (user && user.email) {
+      try {
+        const parts = user.email.split('@')[0].split('.');
+        setFormData(prev => {
+            // Only update if fields are empty to avoid overwriting user input
+            if (prev.firstName) return prev;
+            
+            return {
+                ...prev,
+                firstName: user.first_name || (parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1) : ''),
+                lastName: user.last_name || (parts[1] ? parts[1].charAt(0).toUpperCase() + parts[1].slice(1) : ''),
+                homeCountry: user.home_country || prev.homeCountry,
+            };
+        });
+      } catch (e) {
+        console.warn("Error parsing user email for name:", e);
+      }
     }
   }, [user]);
 
@@ -423,6 +432,9 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       placeholder="manager@maersk.com"
                       className="w-full bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none transition-colors"
                     />
+                    {validationErrors.managerEmail && (
+                      <p className="text-xs text-red-600 mt-2">{validationErrors.managerEmail}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -440,7 +452,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
 
                 <div>
                   <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest flex items-center gap-2">
-                    <Globe size={12} strokeWidth={1.5} /> Destination Country
+                    <Calendar size={12} strokeWidth={1.5} /> Destination Country
                   </label>
                   <CountryAutocomplete
                     value={formData.destinationCountry}
@@ -449,6 +461,9 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                     allowBlocked={false}
                     placeholder="Search for a country..."
                   />
+                  {validationErrors.destinationCountry && (
+                    <p className="text-xs text-red-600 mt-2">{validationErrors.destinationCountry}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-8">
@@ -462,6 +477,9 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       onChange={(e) => handleChange('startDate', e.target.value)}
                       value={formData.startDate}
                     />
+                    {validationErrors.startDate && (
+                      <p className="text-xs text-red-600 mt-2">{validationErrors.startDate}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest flex items-center gap-2">
@@ -476,6 +494,9 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       onChange={(e) => handleChange('endDate', e.target.value)}
                       value={formData.endDate}
                     />
+                    {validationErrors.endDate && (
+                      <p className="text-xs text-red-600 mt-2">{validationErrors.endDate}</p>
+                    )}
                   </div>
                 </div>
 
@@ -512,6 +533,16 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                         Final certifications required to process your request in compliance with international tax and legal regulations.
                     </p>
                 </div>
+
+                {submitError && (
+                  <div className="bg-red-50 border border-red-200 p-4 rounded-sm flex items-start space-x-3">
+                    <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="text-sm font-bold text-red-900">Submission Error</h4>
+                      <p className="text-xs text-red-800 mt-1">{submitError}</p>
+                    </div>
+                  </div>
+                )}
 
                 <div
                   className={`border p-6 rounded-sm transition-all cursor-pointer ${
