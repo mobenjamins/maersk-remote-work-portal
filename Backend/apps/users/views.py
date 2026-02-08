@@ -9,8 +9,9 @@ from datetime import timedelta
 from typing import Dict
 
 from django.conf import settings
-from django.core.mail import send_mail
 from django.template.loader import render_to_string
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, HtmlContent
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -89,16 +90,18 @@ def login(request):
     code = "".join(random.choices(string.digits, k=6))
     OTPCode.objects.create(email=email, code=code)
 
-    # Send OTP via email
+    # Send OTP via SendGrid HTTP API (SMTP ports blocked on Railway)
     try:
-        send_mail(
-            subject="Your Maersk SIRW Portal Security Code",
-            message=f"Your verification code is: {code}\n\nThis code expires in 10 minutes.\n\nIf you did not request this code, please ignore this email.",
+        html_content = render_to_string("emails/otp.html", {"code": code})
+        message = Mail(
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            html_message=render_to_string("emails/otp.html", {"code": code}),
-            fail_silently=False,
+            to_emails=email,
+            subject="Your Maersk SIRW Portal Security Code",
+            html_content=HtmlContent(html_content),
         )
+        sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+        response = sg.send(message)
+        logger.info(f"OTP email sent to {email}, status: {response.status_code}")
     except Exception as e:
         logger.error(f"Failed to send OTP email to {email}: {e}")
         return Response(

@@ -24,6 +24,9 @@ django-debug-toolbar>=4.2,<5.0
 # File handling
 Pillow>=9.0,<11.0
 
+# Email (SendGrid HTTP API — SMTP ports blocked on Railway)
+sendgrid>=6.11,<7.0
+
 # Production
 gunicorn>=21.0,<22.0
 whitenoise>=6.6,<7.0
