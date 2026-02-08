@@ -47,7 +47,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-screen flex bg-[#f8fafc]">
         {/* Left Side - Brand / Image */}
         <div className="hidden lg:flex w-1/2 bg-[#00243d] relative items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://picsum.photos/seed/maersk_ship/1600/1200')] bg-cover opacity-30 mix-blend-overlay"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-[#00243d] via-[#0b1e3b] to-[#42b0d5] opacity-90"></div>
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
             <div className="relative z-10 text-center p-12">
                 <div className="text-white text-6xl mb-6 opacity-90">★</div>
                 <h1 className="text-white text-4xl font-light tracking-wide mb-4">Short-Term International Remote Work Portal</h1>

@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { RequestFormData } from '../types';
 import { askPolicyQuestion } from '../services/geminiService';
 import { createChatSession, sendChatMessage } from '../services/api';
+import { motion } from 'framer-motion';
+import { X, LifeBuoy } from 'lucide-react';
 
 interface PolicyChatbotProps {
   isOpen: boolean;
@@ -94,43 +96,44 @@ export const PolicyChatbot: React.FC<PolicyChatbotProps> = ({ isOpen, onClose, f
   const suggestions = STEP_SUGGESTIONS[currentStep || 0] || DEFAULT_SUGGESTIONS;
 
   return (
-    <div className="w-full h-full flex flex-col bg-white">
+    <div className="w-full h-full flex flex-col bg-white overflow-hidden">
       {/* Header */}
-      <div className="bg-[#42b0d5] p-4 flex justify-between items-center text-white shrink-0 shadow-sm z-10">
-        <div className="flex items-center space-x-3">
-          <div className="bg-white/20 p-2 rounded-full backdrop-blur-md border border-white/10 shadow-inner">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+      <div className="bg-[#0b1e3b] p-5 flex justify-between items-center text-white shrink-0 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0b1e3b] to-[#42b0d5] opacity-20"></div>
+        <div className="relative z-10 flex items-center space-x-3">
+          <div className="bg-white/10 p-2 rounded-sm backdrop-blur-md border border-white/10">
+            <LifeBuoy size={18} strokeWidth={1.5} className="text-[#42b0d5]" />
           </div>
           <div>
-            <h3 className="font-bold text-sm tracking-wide">Policy Assistant</h3>
-            <p className="text-[10px] text-blue-50 font-medium opacity-90">Ask questions about the SIRW policy</p>
+            <h3 className="font-bold text-xs uppercase tracking-[0.2em]">Policy Assistant</h3>
+            <p className="text-[9px] text-gray-400 uppercase tracking-widest mt-0.5">Global SIRW Support</p>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="group p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all duration-200 backdrop-blur-sm border border-white/10 shadow-sm flex items-center justify-center"
-          aria-label="Close Assistant"
+          className="relative z-10 p-2 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-all"
         >
-          <svg className="w-4 h-4 transform group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X size={18} strokeWidth={1.5} />
         </button>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 p-4 overflow-y-auto bg-gray-50 space-y-4" ref={scrollRef}>
+      <div className="flex-1 p-5 overflow-y-auto bg-[#f8fafc] space-y-6" ref={scrollRef}>
         {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] rounded-lg p-3 text-sm leading-relaxed ${
+          <motion.div 
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            key={i} 
+            className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div className={`max-w-[85%] rounded-sm p-4 text-sm leading-relaxed shadow-sm ${
               m.role === 'user'
-                ? 'bg-[#42b0d5] text-white rounded-br-none shadow-md'
-                : 'bg-white border border-gray-200 text-gray-700 rounded-bl-none shadow-sm'
+                ? 'bg-[#0b1e3b] text-white border border-white/5'
+                : 'bg-white border border-gray-100 text-gray-700'
             }`}>
               {m.text}
             </div>
-          </div>
+          </motion.div>
         ))}
         {isThinking && (
           <div className="flex justify-start">

@@ -196,7 +196,10 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
         errors.managerEmail = 'That email does not look valid. Please check it.';
       }
       setValidationErrors(errors);
-      if (Object.keys(errors).length > 0) return;
+      if (Object.keys(errors).length > 0) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
       setStep(2);
     } else if (step === 2) {
       const errors: typeof validationErrors = {};
@@ -217,7 +220,10 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
         }
       }
       setValidationErrors(errors);
-      if (Object.keys(errors).length > 0) return;
+      if (Object.keys(errors).length > 0) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
       setStep(3);
     }
   };
@@ -307,31 +313,42 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
   // Result screen
   if (result !== 'idle') {
     return (
-      <div className={`bg-white rounded-sm shadow-md border p-12 text-center min-h-[600px] flex flex-col items-center justify-center ${
-        result === 'approved' ? 'border-green-200' : result === 'escalated' ? 'border-orange-200' : 'border-red-200'
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className={`bg-white rounded-sm shadow-xl border p-16 text-center min-h-[600px] flex flex-col items-center justify-center relative overflow-hidden ${
+        result === 'approved' ? 'border-emerald-200' : result === 'escalated' ? 'border-orange-200' : 'border-red-200'
       }`}>
-        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${
-          result === 'approved' ? 'bg-green-100 text-green-600' :
+        {result === 'approved' && (
+            <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 0.1, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute inset-0 bg-emerald-400 blur-[120px] rounded-full -top-40 -left-40 w-[500px] h-[500px]"
+            />
+        )}
+        <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-8 relative z-10 ${
+          result === 'approved' ? 'bg-emerald-100 text-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.2)]' :
           result === 'escalated' ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'
         }`}>
-          {result === 'approved' ? <CheckCircle size={40} /> :
-           result === 'escalated' ? <AlertCircle size={40} /> : <XCircle size={40} />}
+          {result === 'approved' ? <CheckCircle size={48} strokeWidth={1.5} /> :
+           result === 'escalated' ? <AlertCircle size={48} strokeWidth={1.5} /> : <XCircle size={48} strokeWidth={1.5} />}
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <h2 className="text-3xl font-light text-gray-900 mb-3 relative z-10">
           {result === 'approved' ? 'Request Approved' :
            result === 'escalated' ? 'Further Review Required' : 'Compliance Issue Detected'}
         </h2>
         {referenceNumber && (
-          <p className="text-xs font-bold text-[#42b0d5] uppercase tracking-widest mb-4">Ref: {referenceNumber}</p>
+          <p className="text-[10px] font-bold text-[#42b0d5] uppercase tracking-[0.3em] mb-6 relative z-10">Reference: {referenceNumber}</p>
         )}
-        <p className="text-gray-500 max-w-md mb-8">{resultMessage}</p>
+        <p className="text-gray-500 max-w-md mb-10 leading-relaxed font-light relative z-10">{resultMessage}</p>
         <button
           onClick={() => window.location.reload()}
-          className="text-[#42b0d5] font-semibold hover:underline"
+          className="text-[#42b0d5] text-xs font-bold uppercase tracking-widest hover:underline relative z-10 transition-all hover:tracking-[0.2em]"
         >
           Return to Dashboard
         </button>
-      </div>
+      </motion.div>
     );
   }
 
@@ -342,11 +359,17 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
         <div className="flex justify-between items-center max-w-3xl mx-auto">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all ${
-                step >= s ? 'border-[#42b0d5] bg-[#42b0d5] text-white' : 'border-gray-200 text-gray-300 bg-white'
-              }`}>
+              <button 
+                onClick={() => {
+                    if (s < step) setStep(s);
+                }}
+                disabled={s >= step}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all ${
+                  step >= s ? 'border-[#42b0d5] bg-[#42b0d5] text-white' : 'border-gray-200 text-gray-300 bg-white'
+                } ${s < step ? 'cursor-pointer hover:bg-[#3aa3c7] hover:border-[#3aa3c7]' : 'cursor-default'}`}
+              >
                 {s}
-              </div>
+              </button>
               <span className={`ml-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${step >= s ? 'text-[#42b0d5]' : 'text-gray-300'}`}>
                 {s === 1 && 'Approval'}
                 {s === 2 && 'Trip Details'}

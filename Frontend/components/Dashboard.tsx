@@ -185,7 +185,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
                 onClick={() => setViewState(ViewState.FORM)}
                 className="group cursor-pointer relative overflow-hidden rounded-sm bg-[#0b1e3b] text-white shadow-xl"
             >
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
                 <div className="absolute top-0 right-0 w-80 h-80 bg-[#42b0d5] rounded-full blur-[100px] opacity-10 group-hover:opacity-20 transition-opacity"></div>
                 
                 <div className="relative z-10 p-10">

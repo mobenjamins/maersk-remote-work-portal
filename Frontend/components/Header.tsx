@@ -41,18 +41,18 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
             <span className="font-bold text-xl tracking-tighter">MAERSK</span>
           </div>
 
-          <div className="flex items-center space-x-6 text-sm">
+          <div className="flex items-center space-x-3 md:space-x-6 text-sm">
             {user && (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="hidden md:flex items-center gap-2.5 px-3 py-1.5 bg-white/10 rounded-full border border-white/20 backdrop-blur-sm"
+                className="flex items-center gap-1.5 md:gap-2.5 px-2 py-1 md:px-3 md:py-1.5 bg-white/10 rounded-full border border-white/20 backdrop-blur-sm"
               >
-                <Calendar size={14} strokeWidth={2.5} className="text-white/80" />
-                <span className="font-bold text-[11px] uppercase tracking-wider">
-                  {daysLeft} Days Remaining
+                <Calendar size={12} strokeWidth={2.5} className="text-white/80 md:size-[14px]" />
+                <span className="font-bold text-[9px] md:text-[11px] uppercase tracking-wider">
+                  {daysLeft}<span className="hidden xs:inline"> Days Left</span><span className="xs:hidden">d</span>
                 </span>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]"></div>
+                <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]"></div>
               </motion.div>
             )}
 
