@@ -15,7 +15,8 @@ import {
   LifeBuoy,
   ChevronRight,
   Briefcase,
-  Plane
+  Plane,
+  Info
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -123,7 +124,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
   const activeRequestsCount = requests.filter(r => r.status === 'approved' || r.status === 'pending').length;
 
   return (
-    <div className="max-w-[900px] mx-auto px-6 py-12">
+    <div className="max-w-[1000px] mx-auto px-6 py-12">
       
       {/* HEADER SECTION */}
       <motion.div 
@@ -136,7 +137,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
                 Global Mobility <span className="font-semibold text-[#42b0d5]">Portal</span>
             </h1>
             <p className="text-gray-500 mt-2 font-light text-sm max-w-md leading-relaxed">
-              Manage your international remote work requests.
+              Manage your international remote work requests in compliance with Maersk global policies.
             </p>
         </div>
         <div className="text-right hidden md:block">
@@ -145,7 +146,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
         </div>
       </motion.div>
 
-      {/* KPI GRID - Ultra Minimal */}
+      {/* KPI GRID */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
          <KPICard 
             label="Days Remaining" 
@@ -164,9 +165,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
             delay={0.2}
          />
          <KPICard 
-            label="Compliance" 
+            label="Compliance Status" 
             value="100%" 
-            subtext="Status"
+            subtext="Fully compliant"
             icon={CheckCircle}
             color="cyan"
             delay={0.3}
@@ -178,33 +179,55 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
         {/* LEFT COLUMN - MAIN ACTIONS & LIST */}
         <div className="lg:col-span-2 space-y-8">
             
-            {/* HERO ACTION CARD - CLEANED UP */}
+            {/* HERO ACTION CARD - Premium Informative Style */}
             <motion.div 
                 whileHover={{ y: -2 }}
                 onClick={() => setViewState(ViewState.FORM)}
-                className="group cursor-pointer relative overflow-hidden rounded-sm bg-[#0b1e3b] text-white shadow-lg"
+                className="group cursor-pointer relative overflow-hidden rounded-sm bg-[#0b1e3b] text-white shadow-xl"
             >
-                {/* Subtle texture */}
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
-                <div className="absolute top-0 right-0 w-64 h-64 bg-[#42b0d5] rounded-full blur-[80px] opacity-10 group-hover:opacity-20 transition-opacity"></div>
+                <div className="absolute top-0 right-0 w-80 h-80 bg-[#42b0d5] rounded-full blur-[100px] opacity-10 group-hover:opacity-20 transition-opacity"></div>
                 
-                <div className="relative z-10 p-8 flex flex-col items-start min-h-[220px] justify-center">
-                    <h2 className="text-2xl font-light text-white mb-3">Start <span className="font-bold">Remote Work</span> Request</h2>
-                    <p className="text-gray-400 text-sm font-light max-w-sm mb-8 leading-relaxed">
-                        Submit a new request for Short-Term International Remote Work.
-                    </p>
-                    <div className="flex items-center gap-3 bg-[#42b0d5] text-white px-5 py-2.5 rounded-sm text-[10px] font-bold uppercase tracking-widest group-hover:bg-[#3aa3c7] transition-colors shadow-sm">
-                        Start Process <ArrowRight size={12} strokeWidth={2} className="group-hover:translate-x-1 transition-transform" />
+                <div className="relative z-10 p-10">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="space-y-4 flex-1">
+                            <h2 className="text-3xl font-light text-white leading-tight">Start <span className="font-bold">SIRW</span> Request</h2>
+                            <p className="text-gray-400 text-sm font-light max-w-sm leading-relaxed">
+                                Submit a new request for Short-Term International Remote Work. Initial approval from your Line Manager is mandatory.
+                            </p>
+                            <div className="flex items-center gap-3 bg-[#42b0d5] text-white px-6 py-3 rounded-sm text-[11px] font-bold uppercase tracking-widest hover:bg-[#3aa3c7] transition-all w-fit shadow-lg shadow-[#42b0d5]/20">
+                                Initiate Request <ChevronRight size={14} strokeWidth={2.5} className="group-hover:translate-x-1 transition-transform" />
+                            </div>
+                        </div>
+                        
+                        <div className="hidden md:block bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-sm w-64">
+                            <h4 className="text-[10px] font-bold text-[#42b0d5] uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                <Info size={12} /> Key Requirements
+                            </h4>
+                            <ul className="space-y-3">
+                                {[
+                                    'Manager email confirmation',
+                                    'Max 20 workdays per year',
+                                    'Valid work rights in destination',
+                                    'Non-restricted role category'
+                                ].map((item, i) => (
+                                    <li key={i} className="flex items-start gap-2.5">
+                                        <div className="w-1 h-1 rounded-full bg-[#42b0d5] mt-1.5 shrink-0" />
+                                        <span className="text-[11px] text-gray-300 font-light leading-tight">{item}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </motion.div>
 
-            {/* ACTIVITY LIST - BARE ESSENTIALS */}
+            {/* ACTIVITY LIST */}
             <div className="bg-white border border-gray-100 rounded-sm shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
                     <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
                        <FileText size={12} strokeWidth={1.5} />
-                       Recent Requests
+                       Recent Activity
                     </h3>
                 </div>
                 
@@ -215,8 +238,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
                     <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-3">
                         <Briefcase size={20} strokeWidth={1} />
                     </div>
-                    <p className="text-gray-500 text-sm mb-1">No requests found</p>
-                    <button onClick={() => setViewState(ViewState.FORM)} className="text-[#42b0d5] text-xs font-bold uppercase tracking-widest hover:underline">Start your first case</button>
+                    <p className="text-gray-500 text-sm mb-1 font-light">No requests found</p>
+                    <button onClick={() => setViewState(ViewState.FORM)} className="text-[#42b0d5] text-xs font-bold uppercase tracking-widest hover:underline mt-2">Start your first case</button>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-50">
@@ -230,15 +253,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
                                 className="px-6 py-5 hover:bg-gray-50/50 transition-colors group flex items-center justify-between"
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className="w-8 h-8 rounded-full bg-blue-50 text-[#42b0d5] flex items-center justify-center text-xs">
-                                        <Globe size={14} strokeWidth={1.5} />
+                                    <div className="w-9 h-9 rounded-full bg-blue-50 text-[#42b0d5] flex items-center justify-center">
+                                        <Globe size={16} strokeWidth={1} />
                                     </div>
                                     <div>
                                         <div className="text-sm font-semibold text-gray-900">{request.destination_country}</div>
-                                        <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2 font-light">
+                                        <div className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-2 font-light uppercase tracking-wide">
                                             <span>{formatDate(request.start_date)} — {formatDate(request.end_date)}</span>
                                             <span className="w-0.5 h-0.5 bg-gray-300 rounded-full"></span>
-                                            <span>{request.duration_days} days</span>
+                                            <span>{request.duration_days} Days</span>
                                         </div>
                                     </div>
                                 </div>
@@ -253,31 +276,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
             </div>
         </div>
 
-        {/* RIGHT COLUMN - SIDEBAR - DECLUTTERED */}
+        {/* RIGHT COLUMN - SIDEBAR */}
         <div className="space-y-6">
             
-            {/* POLICY SNAPSHOT - MINIMALIST */}
+            {/* POLICY RULES */}
             <div className="bg-white border border-gray-100 rounded-sm p-6 shadow-sm">
                 <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                    <CheckCircle size={12} strokeWidth={1.5} className="text-[#42b0d5]" /> Rules
+                    <CheckCircle size={12} strokeWidth={1.5} className="text-[#42b0d5]" /> Policy Highlights
                 </h3>
-                <ul className="space-y-4">
+                <ul className="space-y-5">
                     {[
-                        { label: 'Annual Limit', val: '20 Days' },
-                        { label: 'Eligibility', val: 'Work Rights' },
-                        { label: 'Approval', val: 'Manager + GM' }
+                        { label: 'Annual Limit', val: '20 Days', desc: 'Per calendar year' },
+                        { label: 'Consecutive', val: '14 Days', desc: 'Max single trip' },
+                        { label: 'Eligibility', val: 'Work Rights', desc: 'Valid visa required' }
                     ].map((rule, i) => (
-                        <li key={i} className="flex justify-between items-center pb-4 border-b border-gray-50 last:border-0 last:pb-0">
-                            <span className="text-[10px] text-gray-400 uppercase tracking-wider">{rule.label}</span>
-                            <span className="text-sm font-bold text-gray-900">{rule.val}</span>
+                        <li key={i} className="flex flex-col gap-1">
+                            <div className="flex justify-between items-baseline">
+                                <span className="text-[10px] text-gray-400 uppercase tracking-widest">{rule.label}</span>
+                                <span className="text-xs font-bold text-gray-900">{rule.val}</span>
+                            </div>
+                            <span className="text-[11px] text-gray-500 font-light">{rule.desc}</span>
                         </li>
                     ))}
                 </ul>
                 <button
                     onClick={() => window.open(`${import.meta.env.BASE_URL}policy/Maersk-SIRW-Policy.pdf`, '_blank')}
-                    className="w-full mt-6 py-2 border border-[#42b0d5] text-[#42b0d5] text-[10px] font-bold uppercase tracking-widest rounded-sm hover:bg-[#42b0d5] hover:text-white transition-all"
+                    className="w-full mt-8 py-3 bg-gray-50 text-gray-600 text-[10px] font-bold uppercase tracking-[0.2em] rounded-sm hover:bg-[#42b0d5] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2"
                 >
-                    Download Policy PDF
+                    <FileText size={12} /> Full Policy PDF
                 </button>
             </div>
 

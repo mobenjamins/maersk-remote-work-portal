@@ -309,7 +309,7 @@ def _extract_text_from_eml(file_bytes: bytes) -> str:
 
 
 def _call_gemini_for_extraction(extracted_text: str) -> dict:
-    """Send extracted text to Gemini and ask it to identify the manager."""
+    """Send extracted text to Gemini and ask it to identify manager and employee details."""
     try:
         import google.generativeai as genai
 
@@ -317,14 +317,16 @@ def _call_gemini_for_extraction(extracted_text: str) -> dict:
         model = genai.GenerativeModel(model_name=settings.GEMINI_MODEL)
 
         prompt = (
-            "Analyse this email/document text and identify the SENDER "
-            "(the manager who sent the approval).\n\n"
+            "Analyse this email/document text and identify:\n"
+            "1. The SENDER (the manager who sent the approval).\n"
+            "2. The RECIPIENT (the employee requesting the remote work).\n\n"
             f"TEXT CONTENT:\n{extracted_text[:10000]}\n\n"
             "INSTRUCTIONS:\n"
-            "1. Extract the Sender's Full Name.\n"
-            "2. Extract the Sender's Email Address.\n"
-            '3. Return JSON ONLY: { "managerName": "...", "managerEmail": "..." }\n'
-            "4. If not found, use empty strings."
+            "1. Extract the Manager's Full Name and Email Address.\n"
+            "2. Extract the Employee's Full Name.\n"
+            "3. Extract the Employee's Home Country ONLY if explicitly mentioned or clear from their signature. Otherwise, leave blank.\n"
+            '4. Return JSON ONLY: { "managerName": "...", "managerEmail": "...", "employeeName": "...", "homeCountry": "..." }\n'
+            "5. If any field is not found, use an empty string."
         )
 
         response = model.generate_content(
@@ -339,11 +341,13 @@ def _call_gemini_for_extraction(extracted_text: str) -> dict:
             return {
                 "manager_name": parsed.get("managerName", ""),
                 "manager_email": parsed.get("managerEmail", ""),
+                "employee_name": parsed.get("employeeName", ""),
+                "home_country": parsed.get("homeCountry", ""),
             }
     except Exception as e:
         logger.error(f"Gemini extraction failed: {e}")
 
-    return {"manager_name": "", "manager_email": ""}
+    return {"manager_name": "", "manager_email": "", "employee_name": "", "home_country": ""}
 
 
 def _regex_fallback(extracted_text: str) -> dict:
@@ -354,6 +358,8 @@ def _regex_fallback(extracted_text: str) -> dict:
     return {
         "manager_name": "",
         "manager_email": email_match.group(0) if email_match else "",
+        "employee_name": "",
+        "home_country": "",
     }
 
 
@@ -407,13 +413,13 @@ def extract_approval(request):
     except Exception as e:
         logger.error(f"File text extraction failed: {e}")
         return Response(
-            {"manager_name": "", "manager_email": ""},
+            {"manager_name": "", "manager_email": "", "employee_name": "", "home_country": ""},
             status=status.HTTP_200_OK,
         )
 
     if not extracted_text or len(extracted_text.strip()) < 10:
         return Response(
-            {"manager_name": "", "manager_email": ""},
+            {"manager_name": "", "manager_email": "", "employee_name": "", "home_country": ""},
             status=status.HTTP_200_OK,
         )
 

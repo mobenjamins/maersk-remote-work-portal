@@ -3,7 +3,7 @@ import { User, submitSIRWRequest, checkDateOverlap, getSIRWAnnualBalance, extrac
 import { RequestFormData } from '../types';
 import { CountryAutocomplete } from './CountryAutocomplete';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle, XCircle, Info, UploadCloud, Calendar, ShieldCheck } from 'lucide-react';
 
 interface QuestionnaireProps {
   user?: User | null;
@@ -113,7 +113,8 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
 
   const formatDateForDisplay = (dateStr: string) => {
     const [year, month, day] = dateStr.split('-');
-    return `${day}/${month}/${year}`;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${day} ${months[parseInt(month) - 1]} ${year}`;
   };
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -144,11 +145,27 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
 
       try {
         const data = await extractApprovalFromFile(file);
-        setFormData(prev => ({
-          ...prev,
-          managerName: data.managerName,
-          managerEmail: data.managerEmail,
-        }));
+        
+        setFormData(prev => {
+            const newData = { ...prev };
+            if (data.managerName) newData.managerName = data.managerName;
+            if (data.managerEmail) newData.managerEmail = data.managerEmail;
+            
+            // Premium: Mine employee name/country if pre-filled is empty OR if user confirms
+            if (data.employeeName) {
+                const parts = data.employeeName.trim().split(/\s+/);
+                if (parts.length >= 2) {
+                    newData.firstName = parts[0];
+                    newData.lastName = parts.slice(1).join(' ');
+                }
+            }
+            if (data.homeCountry) {
+                newData.homeCountry = data.homeCountry;
+            }
+            
+            return newData;
+        });
+
         if (!data.managerName && !data.managerEmail) {
           setUploadError('We could not read the approval email. Please enter the manager details below.');
         }
@@ -232,7 +249,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
         setResultMessage(response.message);
       }
     } catch (error: any) {
-      // Show validation errors inline instead of navigating to result screen
       const msg = error.message || 'Failed to submit request. Please try again.';
       setSubmitError(msg);
     } finally {
@@ -242,10 +258,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
 
   const maxDate = getMaxEndDate();
   const workdaysSelected = countWorkdays(formData.startDate, formData.endDate);
-  const showDurationWarning = false; // Removed: 14-day rule is not in the policy
-  const dateOrderError = formData.startDate && formData.endDate && new Date(formData.endDate) < new Date(formData.startDate)
-    ? 'End date must be after the start date.'
-    : '';
 
   useEffect(() => {
     let isActive = true;
@@ -315,118 +327,103 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
   }
 
   return (
-    <div className="bg-white rounded-sm shadow-md border border-gray-200 min-h-[600px] flex flex-col">
+    <div className="bg-white rounded-sm shadow-md border border-gray-200 min-h-[600px] flex flex-col overflow-hidden">
       {/* Stepper Header */}
-      <div className="border-b border-gray-200 bg-gray-50 p-6">
+      <div className="border-b border-gray-100 bg-white p-6">
         <div className="flex justify-between items-center max-w-3xl mx-auto">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 ${
-                step >= s ? 'border-[#42b0d5] bg-[#42b0d5] text-white' : 'border-gray-300 text-gray-400 bg-white'
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all ${
+                step >= s ? 'border-[#42b0d5] bg-[#42b0d5] text-white' : 'border-gray-200 text-gray-300 bg-white'
               }`}>
                 {s}
               </div>
-              <span className={`ml-3 text-sm font-medium ${step >= s ? 'text-[#42b0d5]' : 'text-gray-400'}`}>
-                {s === 1 && 'Profile & Approval'}
+              <span className={`ml-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${step >= s ? 'text-[#42b0d5]' : 'text-gray-300'}`}>
+                {s === 1 && 'Approval'}
                 {s === 2 && 'Trip Details'}
-                {s === 3 && 'Compliance Check'}
+                {s === 3 && 'Compliance'}
               </span>
-              {s !== 3 && <div className="w-16 h-[1px] bg-gray-300 mx-4 hidden sm:block"></div>}
+              {s !== 3 && <div className={`w-12 h-[1px] mx-4 hidden sm:block ${step > s ? 'bg-[#42b0d5]' : 'bg-gray-100'}`}></div>}
             </div>
           ))}
         </div>
       </div>
 
       {/* Form Content */}
-      <div className="flex-1 p-8 max-w-3xl mx-auto w-full">
+      <div className="flex-1 p-10 max-w-3xl mx-auto w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={`step-${step}`}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.3 }}
           >
             {/* STEP 1: Profile & Approval */}
             {step === 1 && (
-              <div className="space-y-6">
-                <div className="bg-blue-50 border border-blue-100 p-4 rounded-sm flex items-start space-x-3 mb-6">
-                  <svg className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div>
-                    <h4 className="text-sm font-bold text-blue-900">One-Time Setup</h4>
-                    <p className="text-xs text-blue-800">We've pre-filled your details. Please upload your manager's approval email to auto-complete the rest.</p>
-                  </div>
+              <div className="space-y-8">
+                <div>
+                    <h3 className="text-xl font-light text-gray-900 mb-2">Manager <span className="font-bold">Approval</span></h3>
+                    <p className="text-sm text-gray-500 leading-relaxed max-w-lg">
+                        Under policy section 4.1.4, initial approval from your Line Manager is mandatory. 
+                        Please upload their confirmation email below to automatically pre-fill your request.
+                    </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="border-2 border-dashed border-gray-100 rounded-sm p-8 text-center bg-gray-50/30 hover:border-[#42b0d5] transition-colors group">
+                    <input type="file" id="approval-upload" className="hidden" accept=".msg,.pdf,.eml,.txt" onChange={handleFileUpload} />
+                    <label htmlFor="approval-upload" className="cursor-pointer flex flex-col items-center">
+                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 text-[#42b0d5] mb-4 group-hover:scale-110 transition-transform">
+                            <UploadCloud size={20} strokeWidth={1.5} />
+                        </div>
+                        <span className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-1">Upload Approval Email</span>
+                        <span className="text-[10px] text-gray-400 uppercase tracking-tight">PDF, MSG, EML or TXT</span>
+                    </label>
+                    {isAnalyzing && (
+                        <div className="mt-4 flex items-center justify-center gap-2 text-[#42b0d5] text-xs font-bold uppercase tracking-widest animate-pulse">
+                            <Info size={14} /> AI Extracting Details...
+                        </div>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-8">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">First Name</label>
-                    <input value={formData.firstName} readOnly className="w-full bg-gray-50 border border-gray-200 text-gray-500 rounded-sm p-3" />
-                    <p className="text-xs text-gray-500 mt-1">Pre-filled from your Maersk profile. Contact HR if incorrect.</p>
+                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">Employee Name</label>
+                    <div className="flex gap-2">
+                        <input value={formData.firstName} readOnly className="w-1/2 bg-gray-50 border border-gray-100 text-gray-500 rounded-sm p-3 text-sm font-medium" placeholder="First" />
+                        <input value={formData.lastName} readOnly className="w-1/2 bg-gray-50 border border-gray-100 text-gray-500 rounded-sm p-3 text-sm font-medium" placeholder="Last" />
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Last Name</label>
-                    <input value={formData.lastName} readOnly className="w-full bg-gray-50 border border-gray-200 text-gray-500 rounded-sm p-3" />
-                    <p className="text-xs text-gray-500 mt-1">Pre-filled from your Maersk profile. Contact HR if incorrect.</p>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Home Country</label>
+                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">Home Country</label>
                     <input
                       value={formData.homeCountry}
                       onChange={(e) => handleChange('homeCountry', e.target.value)}
-                      className="w-full bg-white border border-gray-300 rounded-sm p-3 focus:border-[#42b0d5] outline-none"
+                      className="w-full bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none transition-colors"
+                      placeholder="e.g. Denmark"
                     />
-                    <p className="text-xs text-gray-500 mt-1">The country where your Maersk employment contract is based.</p>
-                    <button onClick={resetProfile} className="text-xs text-gray-500 hover:text-red-500 mt-2 transition-colors">
-                      Reset profile data
-                    </button>
                   </div>
                 </div>
 
-                <div className="border-t border-gray-100 pt-6">
-                  <label className="block text-sm font-semibold text-gray-800 mb-4">Line Manager Approval</label>
-                  <div className="flex items-center space-x-4">
-                    <label className="cursor-pointer bg-white border border-gray-300 hover:border-[#42b0d5] text-gray-700 px-4 py-2 rounded-sm text-sm font-medium transition-all shadow-sm">
-                      Upload Email (.msg, .pdf, .eml, .txt)
-                      <input type="file" className="hidden" accept=".msg,.pdf,.eml,.txt" onChange={handleFileUpload} />
-                    </label>
-                    {isAnalyzing && <span className="text-sm text-[#42b0d5] animate-pulse">Reading file...</span>}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Upload the email from your Line Manager confirming initial approval (Section 4.1.4).</p>
-                  <p className="text-xs text-gray-500 mt-1">Best results: upload .eml or .txt if available.</p>
-                  {uploadError && (
-                    <p className="text-xs text-amber-600 mt-2">{uploadError}</p>
-                  )}
-                  {validationErrors.managerEmail && (
-                    <p className="text-xs text-red-600 mt-2">{validationErrors.managerEmail}</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-6 bg-gray-50 p-6 rounded-sm border border-gray-200">
+                <div className="grid grid-cols-2 gap-8 pt-6 border-t border-gray-100">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Manager Name</label>
+                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">Manager Name</label>
                     <input
                       value={formData.managerName}
                       onChange={(e) => handleChange('managerName', e.target.value)}
                       placeholder="e.g. Lars Jensen"
-                      className="w-full bg-white border border-gray-300 rounded-sm p-3 focus:border-[#42b0d5] outline-none text-gray-800 placeholder-gray-400"
+                      className="w-full bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Manager Email</label>
+                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">Manager Email</label>
                     <input
                       value={formData.managerEmail}
                       onChange={(e) => handleChange('managerEmail', e.target.value)}
                       placeholder="manager@maersk.com"
-                      className="w-full bg-white border border-gray-300 rounded-sm p-3 focus:border-[#42b0d5] outline-none text-gray-800 placeholder-gray-400"
+                      className="w-full bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none transition-colors"
                     />
-                    {validationErrors.managerEmail && (
-                      <p className="text-xs text-red-600 mt-2">{validationErrors.managerEmail}</p>
-                    )}
                   </div>
-                  <p className="col-span-2 text-xs text-gray-500">Auto-filled from upload, or enter manually.</p>
                 </div>
               </div>
             )}
@@ -435,7 +432,16 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
             {step === 2 && (
               <div className="space-y-8">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Destination Country</label>
+                    <h3 className="text-xl font-light text-gray-900 mb-2">Trip <span className="font-bold">Details</span></h3>
+                    <p className="text-sm text-gray-500 leading-relaxed max-w-lg">
+                        Select your destination and dates. Your request must stay within the 20-workday annual limit.
+                    </p>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest flex items-center gap-2">
+                    <Globe size={12} strokeWidth={1.5} /> Destination Country
+                  </label>
                   <CountryAutocomplete
                     value={formData.destinationCountry}
                     onChange={(val) => handleChange('destinationCountry', val)}
@@ -443,89 +449,79 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                     allowBlocked={false}
                     placeholder="Search for a country..."
                   />
-                  <p className="text-xs text-gray-500 mt-1">SIRW cannot be performed in sanctioned countries or those with no Maersk entity (Appendix A).</p>
-                  {validationErrors.destinationCountry && (
-                    <p className="text-xs text-red-600 mt-2">{validationErrors.destinationCountry}</p>
-                  )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-8">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">Start Date</label>
+                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest flex items-center gap-2">
+                        <Calendar size={12} strokeWidth={1.5} /> Start Date
+                    </label>
                     <input
                       type="date"
-                      className="w-full bg-white border border-gray-300 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none"
+                      className="w-full bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none"
                       onChange={(e) => handleChange('startDate', e.target.value)}
                       value={formData.startDate}
                     />
-                    <p className="text-xs text-gray-500 mt-1">The first working day you plan to work remotely from abroad.</p>
-                    {validationErrors.startDate && (
-                      <p className="text-xs text-red-600 mt-2">{validationErrors.startDate}</p>
-                    )}
                   </div>
                   <div>
-                    <div className="flex justify-between">
-                      <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-widest">End Date</label>
-                      {maxDate && (
-                        <span className="text-xs text-[#42b0d5] font-medium">
-                          Max end date (20 workdays): {formatDateForDisplay(maxDate)}
-                        </span>
-                      )}
-                    </div>
+                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest flex items-center gap-2">
+                        <Calendar size={12} strokeWidth={1.5} /> End Date
+                    </label>
                     <input
                       type="date"
                       disabled={!formData.startDate}
                       min={formData.startDate}
                       max={maxDate}
-                      className="w-full bg-white border border-gray-300 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none disabled:bg-gray-100 disabled:text-gray-400 cursor-pointer disabled:cursor-not-allowed"
+                      className="w-full bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none disabled:bg-gray-50 disabled:text-gray-300 transition-colors"
                       onChange={(e) => handleChange('endDate', e.target.value)}
                       value={formData.endDate}
                     />
-                    <p className="text-xs text-gray-500 mt-1">Policy limit: maximum 20 workdays per calendar year (Section 4.1.2).</p>
-                    {workdaysSelected > 0 && (
-                      <div className="mt-1 space-y-0.5">
-                        <p className="text-xs text-blue-600">
-                          This trip: {workdaysSelected} workday{workdaysSelected !== 1 ? 's' : ''}.
-                          {annualBalance != null && (
-                            <> You have {annualBalance.days_remaining} of {annualBalance.days_allowed} days remaining this year.</>
-                          )}
-                        </p>
-                        {annualBalance != null && (workdaysSelected + annualBalance.days_used) > annualBalance.days_allowed && (
-                          <p className="text-xs text-red-600">This trip would exceed your annual limit.</p>
-                        )}
-                        {annualBalance == null && workdaysSelected > 20 && (
-                          <p className="text-xs text-red-600">This exceeds the 20-workday annual limit.</p>
-                        )}
-                      </div>
-                    )}
-                    {/* Back-to-back overlap warnings removed — not in policy */}
-                    {validationErrors.endDate && (
-                      <p className="text-xs text-red-600 mt-2">{validationErrors.endDate}</p>
-                    )}
                   </div>
                 </div>
+
+                {formData.startDate && (
+                   <motion.div 
+                     initial={{ opacity: 0, y: 5 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     className="bg-blue-50 border-l-4 border-[#42b0d5] p-4 rounded-r-sm"
+                   >
+                       <p className="text-xs text-blue-800 flex items-center gap-2">
+                           <Info size={14} /> 
+                           Based on your start date, your trip must conclude by <strong>{formatDateForDisplay(maxDate!)}</strong> to remain within policy.
+                       </p>
+                   </motion.div>
+                )}
+
+                {workdaysSelected > 0 && (
+                  <div className="flex items-center justify-between py-4 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-900">Total Workdays:</span>
+                    <span className={`text-lg font-bold ${workdaysSelected > 20 ? 'text-red-600' : 'text-[#42b0d5]'}`}>
+                        {workdaysSelected} / 20
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
             {/* STEP 3: Compliance Check */}
             {step === 3 && (
               <div className="space-y-8">
-                {submitError && (
-                  <div className="bg-red-50 border border-red-200 p-4 rounded-sm flex items-start space-x-3">
-                    <XCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
-                    <div>
-                      <h4 className="text-sm font-bold text-red-900">Submission Error</h4>
-                      <p className="text-xs text-red-800 mt-1">{submitError}</p>
-                    </div>
-                  </div>
-                )}
+                <div>
+                    <h3 className="text-xl font-light text-gray-900 mb-2">Role <span className="font-bold">Eligibility</span></h3>
+                    <p className="text-sm text-gray-500 leading-relaxed max-w-lg">
+                        Final certifications required to process your request in compliance with international tax and legal regulations.
+                    </p>
+                </div>
+
                 <div
-                  className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm hover:border-[#42b0d5] transition-colors cursor-pointer"
+                  className={`border p-6 rounded-sm transition-all cursor-pointer ${
+                    formData.rightToWork ? 'bg-emerald-50/30 border-emerald-200 shadow-sm' : 'bg-white border-gray-100 hover:border-[#42b0d5]'
+                  }`}
                   onClick={() => handleChange('rightToWork', !formData.rightToWork)}
                 >
                   <div className="flex items-start">
-                    <div className={`mt-1 w-5 h-5 border rounded flex items-center justify-center mr-4 shrink-0 ${
-                      formData.rightToWork ? 'bg-[#42b0d5] border-[#42b0d5]' : 'border-gray-300'
+                    <div className={`mt-1 w-5 h-5 border rounded flex items-center justify-center mr-4 shrink-0 transition-colors ${
+                      formData.rightToWork ? 'bg-emerald-500 border-emerald-500' : 'border-gray-200 bg-white'
                     }`}>
                       {formData.rightToWork && (
                         <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -534,22 +530,23 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       )}
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-800 text-sm">Right to Work Confirmation</h4>
-                      <p className="text-gray-500 text-sm mt-1">
-                        I confirm I have the legal right to work (Citizenship or Valid Visa) in {formData.destinationCountry || 'the destination country'} for the duration of this trip.
+                      <h4 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Right to Work</h4>
+                      <p className="text-gray-500 text-sm mt-1 leading-relaxed">
+                        I certify that I hold the legal right to work (via Citizenship or Valid Visa) in <strong>{formData.destinationCountry}</strong> for the requested duration.
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">The right to work is not the same as the right to visit a country (Section 4.1.3).</p>
                     </div>
                   </div>
                 </div>
 
                 <div
-                  className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm hover:border-[#42b0d5] transition-colors cursor-pointer"
+                  className={`border p-6 rounded-sm transition-all cursor-pointer ${
+                    formData.noRestrictedRoles ? 'bg-emerald-50/30 border-emerald-200 shadow-sm' : 'bg-white border-gray-100 hover:border-[#42b0d5]'
+                  }`}
                   onClick={() => handleChange('noRestrictedRoles', !formData.noRestrictedRoles)}
                 >
                   <div className="flex items-start">
-                    <div className={`mt-1 w-5 h-5 border rounded flex-shrink-0 flex items-center justify-center mr-4 ${
-                      formData.noRestrictedRoles ? 'bg-[#42b0d5] border-[#42b0d5]' : 'border-gray-300'
+                    <div className={`mt-1 w-5 h-5 border rounded flex-shrink-0 flex items-center justify-center mr-4 transition-colors ${
+                      formData.noRestrictedRoles ? 'bg-emerald-500 border-emerald-500' : 'border-gray-200 bg-white'
                     }`}>
                       {formData.noRestrictedRoles && (
                         <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -558,15 +555,22 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                       )}
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-800 text-sm mb-2">Role Eligibility Confirmation</h4>
-                      <p className="text-gray-500 text-sm mb-3">I confirm I do <strong>NOT</strong> fall into any of the following categories:</p>
-                      <ul className="list-disc ml-4 text-xs text-gray-500 space-y-1 leading-relaxed">
-                        <li>Those in frontline, customer-facing roles</li>
-                        <li>Roles that must be performed on site (e.g. seafarers, repair/maintenance, warehouse)</li>
-                        <li>Roles restricted for legal reasons (e.g. data security regulations, sanctioned countries)</li>
-                        <li>Roles that create a <strong>permanent establishment</strong> (e.g. negotiating/signing contracts of value, commercial/sales/procurement roles, Senior Execs)</li>
+                      <h4 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Role Certification</h4>
+                      <p className="text-gray-500 text-sm mt-1 leading-relaxed mb-4">
+                        I certify that my current role allows for remote work and does <strong>not</strong> fall under any of the following restricted categories:
+                      </p>
+                      <ul className="grid grid-cols-2 gap-3">
+                        {[
+                            'Frontline / Customer facing',
+                            'Required on-site',
+                            'Subject to legal restrictions',
+                            'Permanent Establishment risk'
+                        ].map((item, i) => (
+                            <li key={i} className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                <ShieldCheck size={12} className="text-emerald-500" /> {item}
+                            </li>
+                        ))}
                       </ul>
-                      <p className="text-xs text-gray-500 mt-2">See Section 4.1.1 for the full list of ineligible categories.</p>
                     </div>
                   </div>
                 </div>
@@ -577,21 +581,23 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
       </div>
 
       {/* Footer Actions */}
-      <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end space-x-4">
-        {step > 1 && (
+      <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
+        {step > 1 ? (
           <button
             onClick={() => setStep(s => s - 1)}
-            className="px-6 py-3 text-gray-600 font-medium hover:text-gray-900 transition-colors"
+            className="text-xs font-bold text-gray-400 hover:text-gray-900 uppercase tracking-widest transition-colors flex items-center gap-2"
           >
-            Back
+            ← Previous Step
           </button>
-        )}
+        ) : <div />}
+        
         <button
           onClick={step === 3 ? handleSubmit : validateAndNext}
           disabled={loading || (step === 3 && (!formData.rightToWork || !formData.noRestrictedRoles))}
-          className="bg-[#42b0d5] hover:bg-[#3aa3c7] text-white font-semibold py-3 px-8 rounded-sm shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-[#0b1e3b] text-white px-8 py-3 rounded-sm text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed shadow-md shadow-slate-200"
         >
-          {loading ? 'Submitting...' : step === 3 ? 'Submit Request' : 'Next Step'}
+          {loading ? 'Submitting...' : step === 3 ? 'Certify & Submit' : 'Continue'} 
+          {step < 3 && <ChevronRight size={14} />}
         </button>
       </div>
     </div>

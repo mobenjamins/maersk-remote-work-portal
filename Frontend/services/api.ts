@@ -261,7 +261,12 @@ export async function policyChat(question: string, currentContext: string, formD
  * Extract manager name and email from an uploaded approval file.
  * Sends file to the backend which handles parsing + Gemini extraction.
  */
-export async function extractApprovalFromFile(file: File): Promise<{ managerName: string; managerEmail: string }> {
+export async function extractApprovalFromFile(file: File): Promise<{ 
+  managerName: string; 
+  managerEmail: string;
+  employeeName?: string;
+  homeCountry?: string;
+}> {
   const formData = new FormData();
   formData.append('file', file);
 
@@ -294,6 +299,8 @@ export async function extractApprovalFromFile(file: File): Promise<{ managerName
   return {
     managerName: data.manager_name || '',
     managerEmail: data.manager_email || '',
+    employeeName: data.employee_name || '',
+    homeCountry: data.home_country || '',
   };
 }
 
