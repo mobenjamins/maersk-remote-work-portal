@@ -189,7 +189,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#42b0d5] rounded-full blur-[80px] opacity-10 group-hover:opacity-20 transition-opacity"></div>
                 
                 <div className="relative z-10 p-8 flex flex-col items-start min-h-[220px] justify-center">
-                    <h2 className="text-2xl font-light text-white mb-3">Initiate <span className="font-bold">SIRW</span> Request</h2>
+                    <h2 className="text-2xl font-light text-white mb-3">Start <span className="font-bold">Remote Work</span> Request</h2>
                     <p className="text-gray-400 text-sm font-light max-w-sm mb-8 leading-relaxed">
                         Submit a new request for Short-Term International Remote Work.
                     </p>
@@ -264,8 +264,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
                 <ul className="space-y-4">
                     {[
                         { label: 'Annual Limit', val: '20 Days' },
-                        { label: 'Consecutive', val: '14 Days' },
-                        { label: 'Eligibility', val: 'Work Rights' }
+                        { label: 'Eligibility', val: 'Work Rights' },
+                        { label: 'Approval', val: 'Manager + GM' }
                     ].map((rule, i) => (
                         <li key={i} className="flex justify-between items-center pb-4 border-b border-gray-50 last:border-0 last:pb-0">
                             <span className="text-[10px] text-gray-400 uppercase tracking-wider">{rule.label}</span>
