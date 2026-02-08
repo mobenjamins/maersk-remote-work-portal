@@ -70,7 +70,7 @@ const App: React.FC = () => {
         return (
           <>
             <Header user={user} onLogout={handleLogout} />
-            <div className="max-w-[1200px] mx-auto px-8 py-10">
+            <div className="max-w-[1600px] mx-auto px-8 py-10">
               <div className="flex items-center justify-between mb-8">
                 <button
                   onClick={() => { setViewState(ViewState.DASHBOARD); setIsChatbotOpen(false); }}

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { User, submitSIRWRequest, checkDateOverlap, getSIRWAnnualBalance, extractApprovalFromFile, AnnualBalanceResponse } from '../services/api';
+import { User, submitSIRWRequest, checkDateOverlap, getSIRWAnnualBalance, AnnualBalanceResponse } from '../services/api';
+import { extractApprovalData } from '../services/geminiService'; // Using Client-Side Extraction
 import { RequestFormData } from '../types';
 import { CountryAutocomplete } from './CountryAutocomplete';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, AlertCircle, XCircle, Info, UploadCloud, Calendar, ShieldCheck, ChevronRight, AlertTriangle } from 'lucide-react';
+import { CheckCircle, AlertCircle, XCircle, Info, UploadCloud, Calendar, ShieldCheck, ChevronRight, AlertTriangle, FileText } from 'lucide-react';
 
 interface QuestionnaireProps {
   user?: User | null;
@@ -30,10 +31,10 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     endDate?: string;
   }>({});
 
-  const [formData, setFormData] = useState<RequestFormData>({
+  const [formData, setFormData] = useState<RequestFormData & { additionalNotes?: string }>({
     firstName: '',
     lastName: '',
-    homeCountry: 'Denmark',
+    homeCountry: '',
     managerName: '',
     managerEmail: '',
     destinationCountry: '',
@@ -41,6 +42,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     endDate: '',
     rightToWork: false,
     noRestrictedRoles: false,
+    additionalNotes: '',
   });
 
   // Safe pre-population
@@ -49,9 +51,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
       try {
         const parts = user.email.split('@')[0].split('.');
         setFormData(prev => {
-            // Only update if fields are empty to avoid overwriting user input
             if (prev.firstName) return prev;
-            
             return {
                 ...prev,
                 firstName: user.first_name || (parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1) : ''),
@@ -65,25 +65,17 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     }
   }, [user]);
 
-  // Propagate data changes to parent (for PolicyChatbot context)
+  // Propagate data changes
   useEffect(() => {
-    if (onDataChange) {
-      onDataChange(formData);
-    }
+    if (onDataChange) onDataChange(formData);
   }, [formData, onDataChange]);
 
-  // Propagate step changes to parent (for PolicyChatbot chips)
   useEffect(() => {
-    if (onStepChange) {
-      onStepChange(step);
-    }
+    if (onStepChange) onStepChange(step);
   }, [step, onStepChange]);
 
-  // Fetch annual balance on mount
   useEffect(() => {
-    getSIRWAnnualBalance()
-      .then(setAnnualBalance)
-      .catch(() => setAnnualBalance(null));
+    getSIRWAnnualBalance().then(setAnnualBalance).catch(() => setAnnualBalance(null));
   }, []);
 
   const isWorkday = (date: Date) => date.getDay() !== 0 && date.getDay() !== 6;
@@ -93,7 +85,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     const start = new Date(startDate);
     const end = new Date(endDate);
     if (end < start) return 0;
-
     let count = 0;
     const current = new Date(start);
     while (current <= end) {
@@ -103,18 +94,13 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     return count;
   };
 
-  // Calculate max end date (20 workdays from start)
   const getMaxEndDate = () => {
     if (!formData.startDate) return undefined;
     const date = new Date(formData.startDate);
     let workdays = 0;
     while (workdays < 20) {
-      if (isWorkday(date)) {
-        workdays += 1;
-      }
-      if (workdays === 20) {
-        break;
-      }
+      if (isWorkday(date)) workdays += 1;
+      if (workdays === 20) break;
       date.setDate(date.getDate() + 1);
     }
     return date.toISOString().split('T')[0];
@@ -135,17 +121,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     }
   };
 
-  const resetProfile = () => {
-    setFormData(prev => ({
-      ...prev,
-      firstName: '',
-      lastName: '',
-      homeCountry: '',
-      managerName: '',
-      managerEmail: '',
-    }));
-  };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -153,14 +128,13 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
       setUploadError('');
 
       try {
-        const data = await extractApprovalFromFile(file);
+        const data = await extractApprovalData(file); // Client-side extraction
         
         setFormData(prev => {
             const newData = { ...prev };
             if (data.managerName) newData.managerName = data.managerName;
             if (data.managerEmail) newData.managerEmail = data.managerEmail;
             
-            // Premium: Mine employee name/country if pre-filled is empty OR if user confirms
             if (data.employeeName) {
                 const parts = data.employeeName.trim().split(/\s+/);
                 if (parts.length >= 2) {
@@ -171,16 +145,15 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
             if (data.homeCountry) {
                 newData.homeCountry = data.homeCountry;
             }
-            
             return newData;
         });
 
         if (!data.managerName && !data.managerEmail) {
-          setUploadError('We could not read the approval email. Please enter the manager details below.');
+          setUploadError('Could not auto-fill details. Please enter manually.');
         }
       } catch (error) {
         console.error("Extraction failed", error);
-        setUploadError('We could not read the approval email. Please enter the manager details below.');
+        setUploadError('Extraction failed. Please enter details manually.');
       } finally {
         setIsAnalyzing(false);
       }
@@ -190,11 +163,9 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
   const validateAndNext = () => {
     if (step === 1) {
       const errors: typeof validationErrors = {};
-      if (!formData.managerEmail) {
-        errors.managerEmail = 'Please upload the approval email or enter your manager email to continue.';
-      } else if (!isValidEmail(formData.managerEmail)) {
-        errors.managerEmail = 'That email does not look valid. Please check it.';
-      }
+      if (!formData.managerEmail) errors.managerEmail = 'Manager email is required.';
+      else if (!isValidEmail(formData.managerEmail)) errors.managerEmail = 'Invalid email format.';
+      
       setValidationErrors(errors);
       if (Object.keys(errors).length > 0) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -203,20 +174,12 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
       setStep(2);
     } else if (step === 2) {
       const errors: typeof validationErrors = {};
-      if (!formData.destinationCountry) {
-        errors.destinationCountry = 'Please select a destination country.';
-      }
-      if (!formData.startDate) {
-        errors.startDate = 'Please select a start date.';
-      }
-      if (!formData.endDate) {
-        errors.endDate = 'Please select an end date.';
-      }
+      if (!formData.destinationCountry) errors.destinationCountry = 'Destination is required.';
+      if (!formData.startDate) errors.startDate = 'Start date is required.';
+      if (!formData.endDate) errors.endDate = 'End date is required.';
       if (formData.startDate && formData.endDate) {
-        const start = new Date(formData.startDate);
-        const end = new Date(formData.endDate);
-        if (end < start) {
-          errors.endDate = 'End date must be after the start date.';
+        if (new Date(formData.endDate) < new Date(formData.startDate)) {
+          errors.endDate = 'End date cannot be before start date.';
         }
       }
       setValidationErrors(errors);
@@ -233,7 +196,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     setSubmitError('');
 
     try {
-      // Split manager name into first/last
       const nameParts = (formData.managerName || '').trim().split(/\s+/);
       const managerFirstName = nameParts[0] || '';
       const managerLastName = nameParts.length > 1 ? nameParts.slice(-1)[0] : '';
@@ -249,6 +211,8 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
         manager_last_name: managerLastName,
         manager_middle_name: managerMiddleName,
         manager_email: formData.managerEmail,
+        exception_reason: formData.additionalNotes, // Send notes as exception reason context
+        is_exception_request: !!formData.additionalNotes // Flag if notes exist
       });
 
       setReferenceNumber(response.reference_number);
@@ -264,7 +228,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
         setResultMessage(response.message);
       }
     } catch (error: any) {
-      const msg = error.message || 'Failed to submit request. Please try again.';
+      const msg = error.message || 'Failed to submit request.';
       setSubmitError(msg);
     } finally {
       setLoading(false);
@@ -280,34 +244,24 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
       setOverlapWarning('');
       return;
     }
-
     const start = new Date(formData.startDate);
     const end = new Date(formData.endDate);
-    if (end < start) {
-      setOverlapWarning('');
-      return;
-    }
+    if (end < start) return;
 
     setIsCheckingOverlap(true);
     checkDateOverlap(formData.startDate, formData.endDate)
       .then((response) => {
         if (!isActive) return;
         if (response.has_overlap) {
-          setOverlapWarning(response.warning || 'These dates overlap with an existing request.');
+          setOverlapWarning(response.warning || 'Overlap detected.');
         } else {
           setOverlapWarning('');
         }
       })
-      .catch(() => {
-        if (isActive) setOverlapWarning('');
-      })
-      .finally(() => {
-        if (isActive) setIsCheckingOverlap(false);
-      });
+      .catch(() => { if (isActive) setOverlapWarning(''); })
+      .finally(() => { if (isActive) setIsCheckingOverlap(false); });
 
-    return () => {
-      isActive = false;
-    };
+    return () => { isActive = false; };
   }, [formData.startDate, formData.endDate]);
 
   // Result screen
@@ -341,7 +295,13 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
         {referenceNumber && (
           <p className="text-[10px] font-bold text-[#42b0d5] uppercase tracking-[0.3em] mb-6 relative z-10">Reference: {referenceNumber}</p>
         )}
-        <p className="text-gray-500 max-w-md mb-10 leading-relaxed font-light relative z-10">{resultMessage}</p>
+        {/* Outcome Reason */}
+        <p className="text-gray-900 font-medium max-w-md mb-2 relative z-10">
+            {result === 'escalated' ? 'Reason for review:' : 'Outcome detail:'}
+        </p>
+        <p className="text-gray-500 max-w-md mb-10 leading-relaxed font-light relative z-10 text-sm">
+            {resultMessage}
+        </p>
         <button
           onClick={() => window.location.reload()}
           className="text-[#42b0d5] text-xs font-bold uppercase tracking-widest hover:underline relative z-10 transition-all hover:tracking-[0.2em]"
@@ -354,26 +314,22 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
 
   return (
     <div className="bg-white rounded-sm shadow-md border border-gray-200 min-h-[600px] flex flex-col overflow-hidden">
-      {/* Stepper Header */}
+      {/* Stepper */}
       <div className="border-b border-gray-100 bg-white p-6">
         <div className="flex justify-between items-center max-w-3xl mx-auto">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center">
               <button 
-                onClick={() => {
-                    if (s < step) setStep(s);
-                }}
+                onClick={() => { if (s < step) setStep(s); }}
                 disabled={s >= step}
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all ${
                   step >= s ? 'border-[#42b0d5] bg-[#42b0d5] text-white' : 'border-gray-200 text-gray-300 bg-white'
-                } ${s < step ? 'cursor-pointer hover:bg-[#3aa3c7] hover:border-[#3aa3c7]' : 'cursor-default'}`}
+                } ${s < step ? 'cursor-pointer hover:bg-[#3aa3c7]' : 'cursor-default'}`}
               >
                 {s}
               </button>
               <span className={`ml-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${step >= s ? 'text-[#42b0d5]' : 'text-gray-300'}`}>
-                {s === 1 && 'Approval'}
-                {s === 2 && 'Trip Details'}
-                {s === 3 && 'Compliance'}
+                {s === 1 ? 'Approval' : s === 2 ? 'Trip Details' : 'Compliance'}
               </span>
               {s !== 3 && <div className={`w-12 h-[1px] mx-4 hidden sm:block ${step > s ? 'bg-[#42b0d5]' : 'bg-gray-100'}`}></div>}
             </div>
@@ -381,7 +337,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
         </div>
       </div>
 
-      {/* Form Content */}
       <div className="flex-1 p-10 max-w-3xl mx-auto w-full">
         <AnimatePresence mode="wait">
           <motion.div
@@ -394,36 +349,13 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
             {/* STEP 1: Profile & Approval */}
             {step === 1 && (
               <div className="space-y-8">
-                <div>
-                    <h3 className="text-xl font-light text-gray-900 mb-2">Manager <span className="font-bold">Approval</span></h3>
-                    <p className="text-sm text-gray-500 leading-relaxed max-w-lg">
-                        Under policy section 4.1.4, initial approval from your Line Manager is mandatory. 
-                        Please upload their confirmation email below to automatically pre-fill your request.
-                    </p>
-                </div>
-
-                <div className="border-2 border-dashed border-gray-100 rounded-sm p-8 text-center bg-gray-50/30 hover:border-[#42b0d5] transition-colors group">
-                    <input type="file" id="approval-upload" className="hidden" accept=".msg,.pdf,.eml,.txt" onChange={handleFileUpload} />
-                    <label htmlFor="approval-upload" className="cursor-pointer flex flex-col items-center">
-                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 text-[#42b0d5] mb-4 group-hover:scale-110 transition-transform">
-                            <UploadCloud size={20} strokeWidth={1.5} />
-                        </div>
-                        <span className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-1">Upload Approval Email</span>
-                        <span className="text-[10px] text-gray-400 uppercase tracking-tight">PDF, MSG, EML or TXT</span>
-                    </label>
-                    {isAnalyzing && (
-                        <div className="mt-4 flex items-center justify-center gap-2 text-[#42b0d5] text-xs font-bold uppercase tracking-widest animate-pulse">
-                            <Info size={14} /> AI Extracting Details...
-                        </div>
-                    )}
-                </div>
-
+                {/* Employee Details - Moved to TOP as requested */}
                 <div className="grid grid-cols-2 gap-8">
                   <div>
                     <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">Employee Name</label>
                     <div className="flex gap-2">
-                        <input value={formData.firstName} readOnly className="w-1/2 bg-gray-50 border border-gray-100 text-gray-500 rounded-sm p-3 text-sm font-medium" placeholder="First" />
-                        <input value={formData.lastName} readOnly className="w-1/2 bg-gray-50 border border-gray-100 text-gray-500 rounded-sm p-3 text-sm font-medium" placeholder="Last" />
+                        <input value={formData.firstName} onChange={e => handleChange('firstName', e.target.value)} className="w-1/2 bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none" placeholder="First Name" />
+                        <input value={formData.lastName} onChange={e => handleChange('lastName', e.target.value)} className="w-1/2 bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none" placeholder="Last Name" />
                     </div>
                   </div>
                   <div>
@@ -431,13 +363,42 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                     <input
                       value={formData.homeCountry}
                       onChange={(e) => handleChange('homeCountry', e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none transition-colors"
+                      className="w-full bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none"
                       placeholder="e.g. Denmark"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-8 pt-6 border-t border-gray-100">
+                <div className="pt-6 border-t border-gray-50">
+                    <h3 className="text-xl font-light text-gray-900 mb-2">Manager <span className="font-bold">Approval</span></h3>
+                    <p className="text-sm text-gray-500 leading-relaxed max-w-lg mb-6">
+                        Under policy section 4.1.4, initial approval from your Line Manager is mandatory. 
+                        Please upload their confirmation email below to automatically pre-fill your request.
+                    </p>
+
+                    <div className="border-2 border-dashed border-gray-100 rounded-sm p-8 text-center bg-gray-50/30 hover:border-[#42b0d5] transition-colors group">
+                        <input type="file" id="approval-upload" className="hidden" accept=".msg,.pdf,.eml,.txt" onChange={handleFileUpload} />
+                        <label htmlFor="approval-upload" className="cursor-pointer flex flex-col items-center">
+                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 text-[#42b0d5] mb-4 group-hover:scale-110 transition-transform">
+                                <UploadCloud size={20} strokeWidth={1.5} />
+                            </div>
+                            <span className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-1">Upload Approval Email</span>
+                            <span className="text-[10px] text-gray-400 uppercase tracking-tight">PDF, MSG, EML or TXT</span>
+                        </label>
+                        {isAnalyzing && (
+                            <div className="mt-4 flex items-center justify-center gap-2 text-[#42b0d5] text-xs font-bold uppercase tracking-widest animate-pulse">
+                                <Info size={14} /> Extracting Data...
+                            </div>
+                        )}
+                        {uploadError && (
+                            <div className="mt-4 text-xs text-amber-600 bg-amber-50 inline-block px-3 py-1 rounded-sm">
+                                {uploadError}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-8">
                   <div>
                     <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">Manager Name</label>
                     <input
@@ -527,14 +488,27 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                    <motion.div 
                      initial={{ opacity: 0, y: 5 }}
                      animate={{ opacity: 1, y: 0 }}
-                     className="bg-blue-50 border-l-4 border-[#42b0d5] p-4 rounded-r-sm"
+                     className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded-r-sm"
                    >
-                       <p className="text-xs text-blue-800 flex items-center gap-2">
-                           <Info size={14} /> 
-                           Based on your start date, your trip must conclude by <strong>{formatDateForDisplay(maxDate!)}</strong> to remain within policy.
+                       <p className="text-xs text-gray-900 flex items-center gap-2 font-medium">
+                           <Info size={14} className="text-[#42b0d5]" /> 
+                           Based on your start date, your trip must conclude by <strong className="text-[#0b1e3b]">{formatDateForDisplay(maxDate!)}</strong>.
                        </p>
                    </motion.div>
                 )}
+
+                {/* Additional Notes (Optional) */}
+                <div>
+                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest flex items-center gap-2">
+                       <FileText size={12} strokeWidth={1.5} /> Additional Notes / Exception Reason (Optional)
+                    </label>
+                    <textarea
+                        value={formData.additionalNotes}
+                        onChange={(e) => handleChange('additionalNotes', e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none h-24 resize-none"
+                        placeholder="Provide details if you are requesting an exception or have specific circumstances..."
+                    />
+                </div>
 
                 {workdaysSelected > 0 && (
                   <div className="flex items-center justify-between py-4 border-b border-gray-100">
@@ -547,7 +521,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
               </div>
             )}
 
-            {/* STEP 3: Compliance Check */}
+            {/* STEP 3: Compliance */}
             {step === 3 && (
               <div className="space-y-8">
                 <div>
@@ -556,16 +530,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                         Final certifications required to process your request in compliance with international tax and legal regulations.
                     </p>
                 </div>
-
-                {submitError && (
-                  <div className="bg-red-50 border border-red-200 p-4 rounded-sm flex items-start space-x-3">
-                    <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
-                    <div>
-                      <h4 className="text-sm font-bold text-red-900">Submission Error</h4>
-                      <p className="text-xs text-red-800 mt-1">{submitError}</p>
-                    </div>
-                  </div>
-                )}
 
                 <div
                   className={`border p-6 rounded-sm transition-all cursor-pointer ${
@@ -634,7 +598,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
         </AnimatePresence>
       </div>
 
-      {/* Footer Actions */}
+      {/* Footer */}
       <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
         {step > 1 ? (
           <button

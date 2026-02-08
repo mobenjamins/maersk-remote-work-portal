@@ -242,8 +242,8 @@ export async function createChatSession(): Promise<{ session_id: string }> {
   return response.json();
 }
 
-// Policy Q&A chatbot (proxied through backend to keep API key server-side)
-export async function policyChat(question: string, currentContext: string, formData: Record<string, any>): Promise<string> {
+// Policy Q&A chatbot (proxied through backend)
+export async function policyChat(question: string, currentContext: string, formData: Record<string, any>): Promise<{ text: string, suggestions: string[] }> {
   const response = await fetchWithAuth('/ai/policy-chat/', {
     method: 'POST',
     body: JSON.stringify({
@@ -253,13 +253,12 @@ export async function policyChat(question: string, currentContext: string, formD
     }),
   });
   if (!response.ok) throw new Error('Policy chat failed');
-  const data = await response.json();
-  return data.text;
+  return response.json();
 }
 
 /**
- * Extract manager name and email from an uploaded approval file.
- * Sends file to the backend which handles parsing + Gemini extraction.
+ * Extract manager/employee details.
+ * Mode A: Upload file (Legacy/Fallback)
  */
 export async function extractApprovalFromFile(file: File): Promise<{ 
   managerName: string; 
@@ -274,7 +273,6 @@ export async function extractApprovalFromFile(file: File): Promise<{
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
-  // Do NOT set Content-Type — browser will set multipart boundary automatically
 
   const response = await fetch(`${API_BASE_URL}/ai/extract-approval/`, {
     method: 'POST',
@@ -293,6 +291,34 @@ export async function extractApprovalFromFile(file: File): Promise<{
 
   if (!response.ok) {
     throw new Error('File extraction failed');
+  }
+
+  const data = await response.json();
+  return {
+    managerName: data.manager_name || '',
+    managerEmail: data.manager_email || '',
+    employeeName: data.employee_name || '',
+    homeCountry: data.home_country || '',
+  };
+}
+
+/**
+ * Extract entities from pre-parsed text.
+ * Mode B: Client-side parsing -> Backend AI
+ */
+export async function extractApprovalFromText(text: string): Promise<{ 
+  managerName: string; 
+  managerEmail: string;
+  employeeName?: string;
+  homeCountry?: string;
+}> {
+  const response = await fetchWithAuth('/ai/extract-approval/', {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Text extraction failed');
   }
 
   const data = await response.json();

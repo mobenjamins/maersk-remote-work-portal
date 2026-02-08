@@ -208,6 +208,7 @@ def delete_session(request, session_id):
             "type": "object",
             "properties": {
                 "text": {"type": "string"},
+                "suggestions": {"type": "array", "items": {"type": "string"}},
             },
         }
     },
@@ -218,10 +219,6 @@ def delete_session(request, session_id):
 def policy_chat(request):
     """
     Stateless policy Q&A endpoint.
-
-    The frontend sends a question plus optional form context;
-    the backend builds a system prompt with few-shot examples
-    and calls Gemini, keeping the API key server-side.
     """
     serializer = PolicyChatRequestSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -230,9 +227,9 @@ def policy_chat(request):
     current_context = serializer.validated_data.get("current_context", "")
     form_data = serializer.validated_data.get("form_data", {})
 
-    text = ask_policy_question(question, current_context, form_data)
+    result = ask_policy_question(question, current_context, form_data)
 
-    return Response({"text": text})
+    return Response(result)
 
 
 # --- File-based extraction helpers ---
@@ -364,13 +361,21 @@ def _regex_fallback(extracted_text: str) -> dict:
 
 
 @extend_schema(
-    request={"multipart/form-data": {"type": "object", "properties": {"file": {"type": "string", "format": "binary"}}}},
+    request={"multipart/form-data": {
+        "type": "object", 
+        "properties": {
+            "file": {"type": "string", "format": "binary"},
+            "text": {"type": "string"}
+        }
+    }},
     responses={
         200: {
             "type": "object",
             "properties": {
                 "manager_name": {"type": "string"},
                 "manager_email": {"type": "string"},
+                "employee_name": {"type": "string"},
+                "home_country": {"type": "string"},
             },
         }
     },
@@ -381,41 +386,42 @@ def _regex_fallback(extracted_text: str) -> dict:
 @permission_classes([IsAuthenticated])
 def extract_approval(request):
     """
-    Extract manager name and email from an uploaded approval file.
-
-    Accepts .pdf, .msg, .eml, or .txt files. Parses the text server-side
-    and uses Gemini for entity extraction.
+    Extract manager/employee details.
+    
+    Mode A: Upload file (Backend parses PDF/MSG/EML).
+    Mode B: Send 'text' field (Frontend parsed it).
+    
+    Then uses Gemini for entity extraction.
     """
-    uploaded = request.FILES.get("file")
-    if not uploaded:
-        return Response(
-            {"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST
-        )
-
-    file_bytes = uploaded.read()
-    filename = uploaded.name.lower()
-    extracted_text = ""
-
-    try:
-        if filename.endswith(".pdf"):
-            extracted_text = _extract_text_from_pdf(file_bytes)
-        elif filename.endswith(".msg"):
-            extracted_text = _extract_text_from_msg(file_bytes)
-        elif filename.endswith(".eml"):
-            extracted_text = _extract_text_from_eml(file_bytes)
-        elif filename.endswith(".txt"):
-            extracted_text = file_bytes.decode("utf-8", errors="replace")
-        else:
+    extracted_text = request.data.get("text", "")
+    
+    if not extracted_text:
+        uploaded = request.FILES.get("file")
+        if not uploaded:
             return Response(
-                {"error": "Unsupported file type. Please upload .pdf, .msg, .eml, or .txt."},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"error": "No file or text provided."}, status=status.HTTP_400_BAD_REQUEST
             )
-    except Exception as e:
-        logger.error(f"File text extraction failed: {e}")
-        return Response(
-            {"manager_name": "", "manager_email": "", "employee_name": "", "home_country": ""},
-            status=status.HTTP_200_OK,
-        )
+
+        file_bytes = uploaded.read()
+        filename = uploaded.name.lower()
+
+        try:
+            if filename.endswith(".pdf"):
+                extracted_text = _extract_text_from_pdf(file_bytes)
+            elif filename.endswith(".msg"):
+                extracted_text = _extract_text_from_msg(file_bytes)
+            elif filename.endswith(".eml"):
+                extracted_text = _extract_text_from_eml(file_bytes)
+            elif filename.endswith(".txt"):
+                extracted_text = file_bytes.decode("utf-8", errors="replace")
+            else:
+                return Response(
+                    {"error": "Unsupported file type."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except Exception as e:
+            logger.error(f"File parsing failed: {e}")
+            pass
 
     if not extracted_text or len(extracted_text.strip()) < 10:
         return Response(
@@ -423,7 +429,7 @@ def extract_approval(request):
             status=status.HTTP_200_OK,
         )
 
-    # Try Gemini, fall back to regex
+    # Call Gemini (Backend Key)
     if getattr(settings, "GEMINI_API_KEY", None):
         result = _call_gemini_for_extraction(extracted_text)
     else:
