@@ -10,7 +10,10 @@ DEBUG = False
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
 
 # CORS - configure for production domains
-CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
+_cors = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
+CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors if o.strip()] or [
+    "https://cozmcode.github.io",
+]
 CORS_ALLOW_CREDENTIALS = True
 
 # Database - PostgreSQL

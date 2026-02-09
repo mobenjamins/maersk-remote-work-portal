@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, submitSIRWRequest, checkDateOverlap, getSIRWAnnualBalance, AnnualBalanceResponse, extractApprovalFromText } from '../services/api';
-import { extractTextFromFile } from '../services/fileParsing';
+import { User, submitSIRWRequest, checkDateOverlap, getSIRWAnnualBalance, AnnualBalanceResponse, extractApprovalFromFile } from '../services/api';
+import { isCountryBlocked } from '../data/blockedCountries';
 import { RequestFormData } from '../types';
 import { CountryAutocomplete } from './CountryAutocomplete';
 import { Tooltip, LabelWithTooltip } from './Tooltip';
@@ -135,8 +135,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
       setUploadError('');
 
       try {
-        const text = await extractTextFromFile(file);
-        const data = await extractApprovalFromText(text);
+        const data = await extractApprovalFromFile(file);
         
         setFormData(prev => {
             const newData = { ...prev };
@@ -180,6 +179,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
     } else if (step === 2) {
       const errors: typeof validationErrors = {};
       if (!formData.destinationCountry) errors.destinationCountry = 'Destination is required.';
+      else if (isCountryBlocked(formData.destinationCountry)) errors.destinationCountry = 'Please select an authorised destination country to continue.';
       if (!formData.startDate) errors.startDate = 'Start date is required.';
       if (!formData.endDate) errors.endDate = 'End date is required.';
       if (formData.startDate && formData.endDate) {
@@ -449,9 +449,12 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                     value={formData.destinationCountry}
                     onChange={(val) => handleChange('destinationCountry', val)}
                     showBlockedWarning={true}
-                    allowBlocked={false}
+                    allowBlocked={true}
                     placeholder="Search for a country..."
                   />
+                  {validationErrors.destinationCountry && (
+                    <p className="mt-1 text-xs text-red-600 font-medium">{validationErrors.destinationCountry}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-8">

@@ -10,7 +10,7 @@ from email import policy as email_policy
 
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes, permission_classes
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
