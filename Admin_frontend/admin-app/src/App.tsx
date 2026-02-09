@@ -36,8 +36,8 @@ function App() {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: FileText },
     { id: 'overview', label: 'Analytics view', icon: LayoutDashboard },
-    { id: 'questions', label: 'Questions & Exceptions', icon: MessageSquare },
-    { id: 'intelligence', label: 'Intelligence Hub', icon: BrainCircuit },
+    { id: 'questions', label: 'Questions & Answers', icon: MessageSquare },
+    { id: 'intelligence', label: 'Sentiment Analysis', icon: BrainCircuit },
     { id: 'policy', label: 'Policy Governance', icon: ShieldAlert },
   ];
   const activeLabel = tabs.find((tab) => tab.id === activeTab)?.label || activeTab;

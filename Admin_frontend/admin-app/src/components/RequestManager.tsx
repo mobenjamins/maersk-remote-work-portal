@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Download, X, AlertCircle, CheckCircle, Clock, XCircle, MoreVertical, ChevronDown, ChevronUp, CheckSquare, Shield, ShieldAlert, ShieldCheck, Trash2 } from 'lucide-react';
+import { Search, Download, X, AlertCircle, CheckCircle, Clock, XCircle, MoreVertical, ChevronDown, ChevronUp, CheckSquare, Shield, ShieldAlert, ShieldCheck, Trash2, Loader2 } from 'lucide-react';
 import { getAdminRequests, decideAdminRequest, deleteAdminRequest, type AdminRequest } from '../services/api';
 import { mockRequests, type Request } from '../data/mockData';
 import { format, differenceInDays, parseISO } from 'date-fns';
@@ -109,7 +109,8 @@ const RequestManager = () => {
   const [sortMode, setSortMode] = useState<'oldest' | 'newest' | 'risk'>('oldest');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [hoveredEmployeeId, setHoveredEmployeeId] = useState<string | number | null>(null);
-  const [requests, setRequests] = useState<Request[]>(mockRequests);
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [loading, setLoading] = useState(true);
   const [decisionNote, setDecisionNote] = useState('');
   const [isSubmittingDecision, setIsSubmittingDecision] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -117,13 +118,24 @@ const RequestManager = () => {
   useEffect(() => {
     let cancelled = false;
     const loadRequests = async () => {
+      setLoading(true);
       try {
         const data = await getAdminRequests();
-        if (!cancelled && data.length > 0) {
-          setRequests(data.map((r, i) => mapApiRequest(r, i)));
+        if (!cancelled) {
+          if (data && data.length > 0) {
+            setRequests(data.map((r, i) => mapApiRequest(r, i)));
+          } else {
+            setRequests(mockRequests);
+          }
         }
-      } catch {
-        // keep mock data as fallback
+      } catch (error) {
+        if (!cancelled) {
+          setRequests(mockRequests);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
     loadRequests();
@@ -164,11 +176,12 @@ const RequestManager = () => {
   };
 
   const filteredRequests = requests.filter(req => {
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
-      req.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.homeCountry.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.destinationCountry.toLowerCase().includes(searchTerm.toLowerCase());
+      (req.employeeName?.toLowerCase() || '').includes(searchLower) ||
+      (req.reference?.toLowerCase() || '').includes(searchLower) ||
+      (req.homeCountry?.toLowerCase() || '').includes(searchLower) ||
+      (req.destinationCountry?.toLowerCase() || '').includes(searchLower);
 
     const isReviewRequired = req.status === 'escalated';
     const matchesStatus =
@@ -356,7 +369,15 @@ const RequestManager = () => {
       </div>
 
       {/* Table Area */}
-      <div className="flex-1 bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden flex flex-col relative min-h-[400px]">
+        {loading ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-20">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 text-maersk-blue animate-spin" />
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading requests...</p>
+            </div>
+          </div>
+        ) : null}
         <div className="overflow-x-auto h-full">
           <table className="w-full text-left">
             <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">

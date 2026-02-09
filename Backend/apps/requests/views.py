@@ -293,7 +293,7 @@ def sirw_wizard_submit(request):
 
         instance.decision_reason = (
             f"Request requires Global Mobility review: {', '.join(reasons)}. "
-            f"Exception reason: {instance.exception_reason or 'Not provided'}"
+            f"Exception reason: {instance.exception_reason or 'Not provided'} (Policy Sections 4.1.2, 5)."
         )
         instance.escalation_note = (
             f"Days used this year: {days_used}. "

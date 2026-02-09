@@ -348,14 +348,52 @@ def _call_gemini_for_extraction(extracted_text: str) -> dict:
 
 
 def _regex_fallback(extracted_text: str) -> dict:
-    """Simple regex fallback if Gemini is unavailable."""
-    email_match = re.search(
-        r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", extracted_text
+    """Regex fallback if Gemini is unavailable — extracts sender (manager) and recipient (employee)."""
+    manager_name = ""
+    manager_email = ""
+    employee_name = ""
+
+    # Try to find the sender line: "From: Name <email>" or just "Name <email>" at the top
+    # In a reply email, the sender (manager) is at the top, the original sender (employee) is in the quoted section
+    sender_match = re.search(
+        r"^(?:From:\s*)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*<([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})>",
+        extracted_text,
+        re.MULTILINE,
     )
+    if sender_match:
+        manager_name = sender_match.group(1).strip()
+        manager_email = sender_match.group(2).strip()
+
+    # Try to find the recipient (employee) from "To:" line
+    to_match = re.search(
+        r"^To:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*<([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})>",
+        extracted_text,
+        re.MULTILINE,
+    )
+    if to_match:
+        employee_name = to_match.group(1).strip()
+
+    # If no structured match, try "Best regards," followed by a name on the next line
+    if not manager_name:
+        regards_match = re.search(
+            r"(?:Best regards|Kind regards|Regards),?\s*\n\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)",
+            extracted_text,
+        )
+        if regards_match:
+            manager_name = regards_match.group(1).strip()
+
+    # If still no email, grab the first email address found
+    if not manager_email:
+        email_match = re.search(
+            r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", extracted_text
+        )
+        if email_match:
+            manager_email = email_match.group(0)
+
     return {
-        "manager_name": "",
-        "manager_email": email_match.group(0) if email_match else "",
-        "employee_name": "",
+        "manager_name": manager_name,
+        "manager_email": manager_email,
+        "employee_name": employee_name,
         "home_country": "",
     }
 
@@ -382,7 +420,7 @@ def _regex_fallback(extracted_text: str) -> dict:
     tags=["AI Chat"],
 )
 @api_view(["POST"])
-@parser_classes([MultiPartParser])
+@parser_classes([JSONParser, MultiPartParser, FormParser])
 @permission_classes([IsAuthenticated])
 def extract_approval(request):
     """
@@ -429,10 +467,14 @@ def extract_approval(request):
             status=status.HTTP_200_OK,
         )
 
-    # Call Gemini (Backend Key)
+    # Call Gemini (Backend Key), fall back to regex if Gemini returns empty
+    result = None
     if getattr(settings, "GEMINI_API_KEY", None):
         result = _call_gemini_for_extraction(extracted_text)
-    else:
+
+    # Fall back to regex if Gemini is unavailable or returned empty results
+    if not result or (not result.get("manager_name") and not result.get("manager_email")):
+        logger.info("Gemini extraction returned empty — falling back to regex")
         result = _regex_fallback(extracted_text)
 
     return Response(result, status=status.HTTP_200_OK)

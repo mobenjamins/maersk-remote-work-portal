@@ -390,6 +390,33 @@ flake8 Backend/
 
 ---
 
+## Approval File Extraction (CRITICAL — DO NOT BREAK)
+
+The approval extraction feature extracts manager name/email from uploaded PDF/EML/MSG files. This is a frequently broken feature — **always preserve the full pipeline**.
+
+### Architecture (Backend-only — NEVER modify frontend-side)
+- **Frontend** uploads file via `extractApprovalFromFile()` in `Frontend/services/api.ts` → `POST /api/ai/extract-approval/`
+- **Backend** (`Backend/apps/ai/views.py` → `extract_approval` view) does ALL the work:
+  1. Parses file: `_extract_text_from_pdf()` (PyPDF2), `_extract_text_from_msg()` (extract-msg), `_extract_text_from_eml()` (stdlib email)
+  2. Sends text to Gemini via `_call_gemini_for_extraction()` for entity extraction
+  3. Falls back to `_regex_fallback()` if Gemini fails or returns empty
+  4. Returns `{ "manager_name", "manager_email", "employee_name", "home_country" }` (snake_case)
+- **Frontend** maps snake_case → camelCase: `manager_name` → `managerName`, populates form fields
+
+### Common Failure Points
+- **Gemini model deprecated**: Model names change (e.g. `gemini-1.5-flash` → `gemini-2.0-flash`). Check `GEMINI_MODEL` in `config/settings/base.py`. If extraction silently returns empty, the model is likely 404.
+- **API key revoked**: Google scans public repos and revokes leaked keys. If you see 403 errors, the key needs replacing.
+- **Silent exception swallowing**: The `_call_gemini_for_extraction` catches ALL exceptions and returns empty dict. The `extract_approval` view MUST fall back to `_regex_fallback()` when Gemini returns empty.
+- **Venv gotcha**: `python3` on this machine is system Python 3.13, not the venv. Always use `./venv/bin/python` for backend testing.
+
+### Rules
+- **NEVER add file parsing packages to frontend** (no pdfjs-dist, msgreader, eml-parse-js)
+- **NEVER put Gemini API key in frontend code**
+- **ALWAYS ensure regex fallback is called** when Gemini returns empty results
+- **Test with**: `/Users/benjaminoghene/Documents/Maersk2/InstallationInstructions/SIRW_Approval_Maria_Nielsen.pdf` — should extract `Maria Nielsen` / `maria.nielsen@maersk.com`
+
+---
+
 ## Browser Automation (CRITICAL)
 
 - **ALWAYS use Claude in Chrome** (mcp__claude-in-chrome__*) to carry out any manual tasks that involve web dashboards, deployment platforms (Railway, GitHub Pages, Vercel, etc.), or any browser-based configuration

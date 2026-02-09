@@ -67,7 +67,7 @@ class BlockedCountryRule(BaseRule):
         return ComplianceRule(
             name=self.name,
             passed=False,
-            reason=block_message or f"SIRW to {destination_country} is not permitted.",
+            reason=f"{block_message or 'SIRW to this country is not permitted'} (Policy Appendix A).",
             severity=self.severity,
         )
 
@@ -95,7 +95,7 @@ class RightToWorkRule(BaseRule):
             name=self.name,
             passed=False,
             reason=f"Employee does not have right to work in {destination_country}. "
-            f"Remote work cannot be approved without valid work authorisation.",
+            f"Remote work cannot be approved without valid work authorisation (Policy Section 4.1.3).",
             severity=self.severity,
         )
 
@@ -154,7 +154,7 @@ class DurationRule(BaseRule):
             passed=False,
             reason=f"Duration of {duration_days} days exceeds the maximum allowed "
             f"{self.max_days} days for short-term remote work. "
-            f"Please shorten your request or apply for a permanent transfer.",
+            f"Please shorten your request or apply for a permanent transfer (Policy Section 4.1.2).",
             severity=self.severity,
         )
 
@@ -216,7 +216,7 @@ class ConsecutiveDaysRule(BaseRule):
             reason=f"Duration of {duration_days} consecutive days exceeds the maximum allowed "
             f"{self.max_consecutive_days} consecutive workdays. The 20-day annual allowance "
             f"cannot be taken as a single continuous block. Please shorten your request "
-            f"or split into multiple trips.",
+            f"or split into multiple trips (Policy Section 4.1.2).",
             severity=self.severity,
         )
 
@@ -253,7 +253,7 @@ class IneligibleRoleRule(BaseRule):
                 passed=False,
                 reason="Employee has contract signing authority which may create "
                 "Permanent Establishment risk. Sales and commercial roles with "
-                "contract signing authority are not eligible for SIRW.",
+                "contract signing authority are not eligible for SIRW (Policy Section 4.1.1).",
                 severity=self.severity,
             )
 
@@ -279,7 +279,7 @@ class IneligibleRoleRule(BaseRule):
                     name=self.name,
                     passed=False,
                     reason=f"Employee is in an ineligible role category: {', '.join(flagged)}. "
-                    f"SIRW is not available for this role type.",
+                    f"SIRW is not available for this role type (Policy Section 4.1.1).",
                     severity=self.severity,
                 )
 

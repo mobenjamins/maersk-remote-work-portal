@@ -27,7 +27,7 @@ interface DashboardProps {
 
 // --- MICRO-COMPONENTS ---
 
-const AnimatedCounter = ({ value, duration = 1.5 }: { value: number, duration?: number }) => {
+const AnimatedCounter = ({ value, duration = 1 }: { value: number, duration?: number }) => {
   const spring = useSpring(0, { duration: duration * 1000, bounce: 0 });
   const display = useTransform(spring, (current) => Math.round(current));
 
@@ -58,7 +58,7 @@ const KPICard = ({ label, value, subtext, icon: Icon, color, delay }: any) => {
           <Icon size={48} strokeWidth={0.5} />
       </div>
       <div className="relative z-10">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</div>
+          <div className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-1">{label}</div>
           <div className="text-3xl font-light text-gray-900 tracking-tight flex items-baseline gap-1">
               {value}
           </div>
@@ -141,7 +141,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
             </p>
         </div>
         <div className="text-right hidden md:block">
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Current Period</div>
+            <div className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Current Period</div>
             <div className="text-lg font-medium text-gray-900">{new Date().getFullYear()} Calendar Year</div>
         </div>
       </motion.div>
@@ -225,17 +225,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
             {/* ACTIVITY LIST */}
             <div className="bg-white border border-gray-100 rounded-sm shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
-                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    <h3 className="text-[10px] font-bold text-gray-600 uppercase tracking-widest flex items-center gap-2">
                        <FileText size={12} strokeWidth={1.5} />
                        Recent Activity
                     </h3>
                 </div>
                 
                 {loading ? (
-                  <div className="p-8 text-center text-gray-400 text-sm italic">Loading history...</div>
+                  <div className="p-8 text-center text-gray-500 text-sm italic">Loading history...</div>
                 ) : requests.length === 0 ? (
                   <div className="p-10 text-center flex flex-col items-center">
-                    <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-3">
+                    <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 mb-3">
                         <Briefcase size={20} strokeWidth={1} />
                     </div>
                     <p className="text-gray-500 text-sm mb-1 font-light">No requests found</p>
@@ -258,9 +258,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
                                     </div>
                                     <div>
                                         <div className="text-sm font-semibold text-gray-900">{request.destination_country}</div>
-                                        <div className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-2 font-light uppercase tracking-wide">
+                                        <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2 font-light uppercase tracking-wide">
                                             <span>{formatDate(request.start_date)} — {formatDate(request.end_date)}</span>
-                                            <span className="w-0.5 h-0.5 bg-gray-300 rounded-full"></span>
+                                            <span className="w-0.5 h-0.5 bg-gray-400 rounded-full"></span>
                                             <span>{request.duration_days} Days</span>
                                         </div>
                                     </div>
@@ -281,7 +281,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
             
             {/* POLICY RULES */}
             <div className="bg-white border border-gray-100 rounded-sm p-6 shadow-sm">
-                <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                <h3 className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-6 flex items-center gap-2">
                     <CheckCircle size={12} strokeWidth={1.5} className="text-[#42b0d5]" /> Policy Highlights
                 </h3>
                 <ul className="space-y-5">
@@ -292,7 +292,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setViewState, user, onOpen
                     ].map((rule, i) => (
                         <li key={i} className="flex flex-col gap-1">
                             <div className="flex justify-between items-baseline">
-                                <span className="text-[10px] text-gray-400 uppercase tracking-widest">{rule.label}</span>
+                                <span className="text-[10px] text-gray-600 uppercase tracking-widest">{rule.label}</span>
                                 <span className="text-xs font-bold text-gray-900">{rule.val}</span>
                             </div>
                             <span className="text-[11px] text-gray-500 font-light">{rule.desc}</span>

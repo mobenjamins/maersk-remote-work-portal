@@ -199,7 +199,54 @@ def get_gemini_service() -> GeminiService:
 POLICY_CONTEXT = """
 MAERSK GLOBAL SHORT-TERM INTERNATIONAL REMOTE WORK (SIRW) POLICY (V3, effective 1 March 2026)
 
-[...Content clipped for brevity, see previous context...]
+1. EFFECTIVE DATE: 1 March 2026.
+
+2. SCOPE:
+Sets out Maersk's approach to SIRW, separate from Permanent International Remote Work (PIRW). 
+Does NOT cover formal assignments (STA/LTA), business travel, or regular commuting.
+
+3. PRINCIPLES:
+Provides a framework to request work for a limited period in a country other than the employment country. 
+Aims to manage tax/immigration risks, standardize the approach, and ensure talent retention.
+
+4. MAIN POLICY STATEMENT:
+SIRW includes working on vacation, at home abroad, or caretaking family abroad. 
+Requires prior approval from both the Leader (manager) and Global Mobility.
+
+4.1.1 ELIGIBILITY:
+NOT available to:
+- Frontline, customer-facing roles.
+- On-site roles (seafarers, repair/maintenance, warehouse).
+- Roles restricted for legal/sanction reasons or strict data security.
+- Roles creating Permanent Establishment (PE) risk: Negotiating/signing contracts, Commercial/Sales/Procurement roles, or Senior Executive leadership.
+
+4.1.2 DURATION ALLOWED:
+- Maximum 20 workdays per calendar year.
+- Cannot be taken as a single block of 20 continuous days.
+- Colleagues must track their own workdays.
+- Exceeding 20 days requires prior approval for Extended SIRW (exceptional cases only).
+
+4.1.3 REQUIREMENTS:
+- Immigration: Must have the right to work (not just visit) in the destination country. Maersk does not support visa costs.
+- Tax: If SIRW creates a tax return or payroll reporting obligation, it will be declined.
+- Relevant Countries: Cannot perform SIRW in countries with no Maersk entity or under EU/US/UN sanctions.
+
+4.1.4 GOVERNANCE:
+SIRW is at company discretion; no legal right. Leader approval is required first, followed by Global Mobility approval via the tech platform.
+
+4.1.5 PROCESS:
+Submit requests via the SIRW tech platform (SSO verified). A one-time profile creation is required.
+
+5. EXTENDED SIRW (EXCEPTIONAL):
+Requires immediate notification to Leader and Global Mobility for cases like birth of a child, serious illness, or death of immediate family. 
+Must be approved by Functional Head, and potentially PLT/ELT members for complex cases.
+
+7. APPENDIX A:
+Sanctioned or No Maersk Entity countries include (but not limited to):
+- Asia: Afghanistan, North Korea, Iran, Iraq, Myanmar, Brunei, Bhutan, Fiji, Maldives, Nepal, etc.
+- IMEA: Central African Rep, Congo, Guinea, Libya, Somalia, Sudan, Syria, Yemen, Zimbabwe, etc.
+- Europe: Russia, Ukraine, Bosnia & Herzegovina, Turkey, Albania, Iceland, etc.
+- Americas: Haiti, Nicaragua, Venezuela, etc.
 """
 
 

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, submitSIRWRequest, checkDateOverlap, getSIRWAnnualBalance, AnnualBalanceResponse, extractApprovalFromFile } from '../services/api';
+import { User, submitSIRWRequest, checkDateOverlap, getSIRWAnnualBalance, AnnualBalanceResponse, extractApprovalFromText } from '../services/api';
+import { extractTextFromFile } from '../services/fileParsing';
 import { RequestFormData } from '../types';
 import { CountryAutocomplete } from './CountryAutocomplete';
+import { Tooltip, LabelWithTooltip } from './Tooltip';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, AlertCircle, XCircle, Info, UploadCloud, Calendar, ShieldCheck, ChevronRight, AlertTriangle, FileText } from 'lucide-react';
 
@@ -133,7 +135,8 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
       setUploadError('');
 
       try {
-        const data = await extractApprovalFromFile(file);
+        const text = await extractTextFromFile(file);
+        const data = await extractApprovalFromText(text);
         
         setFormData(prev => {
             const newData = { ...prev };
@@ -361,20 +364,26 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                 {/* Employee Details - TOP */}
                 <div className="grid grid-cols-2 gap-8">
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">Employee Name</label>
+                    <LabelWithTooltip label="Employee Name" tooltip="Enter your full name as it appears on Maersk records." />
                     <div className="flex gap-2">
                         <input value={formData.firstName} onChange={e => handleChange('firstName', e.target.value)} className="w-1/2 bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none" placeholder="First Name" />
                         <input value={formData.lastName} onChange={e => handleChange('lastName', e.target.value)} className="w-1/2 bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none" placeholder="Last Name" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">Home Country</label>
+                    <LabelWithTooltip label="Home Country" tooltip="The country where your employment contract is based (Policy Section 3)." />
                     <input
                       value={formData.homeCountry}
                       onChange={(e) => handleChange('homeCountry', e.target.value)}
                       className="w-full bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none transition-colors"
                       placeholder="e.g. Denmark"
                     />
+                    <button 
+                      onClick={() => setFormData(prev => ({ ...prev, firstName: '', lastName: '', homeCountry: '', managerName: '', managerEmail: '' }))}
+                      className="mt-2 text-[10px] text-gray-400 hover:text-maersk-blue font-bold uppercase tracking-widest underline decoration-gray-200 underline-offset-4"
+                    >
+                      Not you? Reset details
+                    </button>
                   </div>
                 </div>
 
@@ -403,7 +412,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
 
                 <div className="grid grid-cols-2 gap-8">
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">Manager Name</label>
+                    <LabelWithTooltip label="Manager Name" tooltip="Line Manager approval is mandatory (Policy Section 4.1.4)." />
                     <input
                       value={formData.managerName}
                       onChange={(e) => handleChange('managerName', e.target.value)}
@@ -412,7 +421,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">Manager Email</label>
+                    <LabelWithTooltip label="Manager Email" tooltip="The decision will be shared with your manager (Policy Section 4.1.5)." />
                     <input
                       value={formData.managerEmail}
                       onChange={(e) => handleChange('managerEmail', e.target.value)}
@@ -435,9 +444,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest flex items-center gap-2">
-                    <Calendar size={12} strokeWidth={1.5} /> Destination Country
-                  </label>
+                  <LabelWithTooltip label="Destination Country" tooltip="Must have a Maersk entity and not be a sanctioned country (Policy Section 4.1.3)." />
                   <CountryAutocomplete
                     value={formData.destinationCountry}
                     onChange={(val) => handleChange('destinationCountry', val)}
@@ -449,9 +456,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
 
                 <div className="grid grid-cols-2 gap-8">
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest flex items-center gap-2">
-                        <Calendar size={12} strokeWidth={1.5} /> Start Date
-                    </label>
+                    <LabelWithTooltip label="Start Date" tooltip="Maximum 20 workdays per year. Consecutive block cannot exceed 14 days without exception (Policy Section 4.1.2)." />
                     <input
                       type="date"
                       className="w-full bg-white border border-gray-200 rounded-sm p-3 text-sm focus:border-[#42b0d5] outline-none"
@@ -460,9 +465,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ user, onDataChange
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest flex items-center gap-2">
-                        <Calendar size={12} strokeWidth={1.5} /> End Date
-                    </label>
+                    <LabelWithTooltip label="End Date" tooltip="The trip must conclude within the 20-day annual limit (Policy Section 4.1.2)." />
                     <input
                       type="date"
                       disabled={!formData.startDate}

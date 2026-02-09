@@ -21,7 +21,7 @@ const chartData = [
   { name: 'Jul', requests: 24 },
 ];
 
-const AnimatedCounter = ({ value, duration = 2 }: { value: number, duration?: number }) => {
+const AnimatedCounter = ({ value, duration = 1 }: { value: number, duration?: number }) => {
   const spring = useSpring(0, { duration: duration * 1000, bounce: 0 });
   const display = useTransform(spring, (current) => Math.round(current));
 
@@ -523,7 +523,7 @@ const KPICard = ({ title, value, change, icon: Icon, color, active, delay = 0 }:
       </div>
       <div className="space-y-1">
         <h4 className="text-2xl font-semibold text-gray-900 tracking-tight">{value}</h4>
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{title}</p>
+        <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">{title}</p>
       </div>
     </motion.div>
   );
